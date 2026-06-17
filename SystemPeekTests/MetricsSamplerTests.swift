@@ -19,6 +19,9 @@ final class MetricsSamplerTests: XCTestCase {
         XCTAssertGreaterThan(m.diskTotalBytes, 0)
         XCTAssertGreaterThanOrEqual(m.diskUsedBytes, 0)
         XCTAssertLessThanOrEqual(m.diskUsedBytes, m.diskTotalBytes)
+
+        XCTAssertGreaterThanOrEqual(m.networkDownBytesPerSec, 0)
+        XCTAssertGreaterThanOrEqual(m.networkUpBytesPerSec, 0)
     }
 
     func testRepeatedSamplingStaysConsistent() {

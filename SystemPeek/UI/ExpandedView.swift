@@ -64,6 +64,16 @@ struct ExpandedView: View {
 
     private var m: SystemMetrics { sampler.metrics }
 
+    /// Combined throughput as a percentage of a ~100 Mbps reference, for the bar.
+    private var networkPercent: Double {
+        let cap = 12_500_000.0
+        return min((m.networkDownBytesPerSec + m.networkUpBytesPerSec) / cap * 100, 100)
+    }
+
+    private func rate(_ bytesPerSecond: Double) -> String {
+        ByteFormat.string(Int64(max(bytesPerSecond, 0))) + "/s"
+    }
+
     var body: some View {
         VStack(spacing: 14) {
             MetricRow(
@@ -86,6 +96,13 @@ struct ExpandedView: View {
                 percent: m.diskPercent,
                 detail: "\(ByteFormat.string(m.diskUsedBytes)) / \(ByteFormat.string(m.diskTotalBytes))",
                 identifier: "disk"
+            )
+            MetricRow(
+                icon: "arrow.up.arrow.down",
+                label: "Network",
+                percent: networkPercent,
+                detail: "↓ \(rate(m.networkDownBytesPerSec))   ↑ \(rate(m.networkUpBytesPerSec))",
+                identifier: "network"
             )
         }
         // Clear the menu-bar height at the top so content sits below it.

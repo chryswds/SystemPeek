@@ -8,6 +8,8 @@ struct SystemMetrics: Equatable {
     var memoryTotalBytes: UInt64
     var diskUsedBytes: Int64
     var diskTotalBytes: Int64
+    var networkDownBytesPerSec: Double = 0
+    var networkUpBytesPerSec: Double = 0
 
     static let zero = SystemMetrics(
         cpuPercent: 0,
