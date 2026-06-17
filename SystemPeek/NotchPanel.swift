@@ -34,15 +34,19 @@ final class NotchPanel: NSPanel {
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
+        // Notch width drives the panel's flat-top width so it flares from the notch.
+        let notchWidth: CGFloat = NotchPanel.notchScreen()
+            .map { max(NotchPanel.notchRect(on: $0).width, 90) } ?? 200
+
         // Measure the content once so frames are exact.
-        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler))
+        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth))
         measure.layoutSubtreeIfNeeded()
         let fitting = measure.fittingSize
         if fitting.width > 1, fitting.height > 1 { expandedSize = fitting }
 
         // Pin the content to the top at its full size so that, as the window grows
         // from a sliver to full height, the panel is revealed top-to-bottom.
-        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler))
+        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth))
         hosting.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
         container.addSubview(hosting)

@@ -11,10 +11,56 @@ extension Color {
     }
 }
 
+/// Outline that makes the panel look like the notch expanding: a flat top the
+/// width of the notch (flush with the menu bar), concave "shoulders" flaring out
+/// to the card's full width, then straight sides into rounded bottom corners.
+struct NotchExpandShape: Shape {
+    var notchWidth: CGFloat
+    var shoulder: CGFloat = 16      // depth of the concave flare
+    var bottomRadius: CGFloat = 22
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let topInset = max((rect.width - notchWidth) / 2, shoulder)
+        let leftTopX = rect.minX + topInset
+        let rightTopX = rect.maxX - topInset
+
+        // Flat top starts at the left end (under the notch).
+        path.move(to: CGPoint(x: leftTopX, y: rect.minY))
+        // Concave shoulder flaring out to the left edge.
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.minY + shoulder),
+            control: CGPoint(x: rect.minX, y: rect.minY)
+        )
+        // Left side down to the bottom-left corner.
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - bottomRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + bottomRadius, y: rect.maxY),
+            control: CGPoint(x: rect.minX, y: rect.maxY)
+        )
+        // Bottom edge.
+        path.addLine(to: CGPoint(x: rect.maxX - bottomRadius, y: rect.maxY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.maxY - bottomRadius),
+            control: CGPoint(x: rect.maxX, y: rect.maxY)
+        )
+        // Right side up.
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + shoulder))
+        // Concave shoulder flaring back in to the flat top.
+        path.addQuadCurve(
+            to: CGPoint(x: rightTopX, y: rect.minY),
+            control: CGPoint(x: rect.maxX, y: rect.minY)
+        )
+        path.closeSubpath()
+        return path
+    }
+}
+
 /// The drop-down panel contents: live CPU, memory, and disk usage with icons.
 /// Observes the shared `MetricsSampler` so rows update as new samples arrive.
 struct ExpandedView: View {
     @ObservedObject var sampler: MetricsSampler
+    var notchWidth: CGFloat = 200
 
     private var m: SystemMetrics { sampler.metrics }
 
@@ -42,14 +88,14 @@ struct ExpandedView: View {
                 identifier: "disk"
             )
         }
-        .padding(16)
-        .frame(width: 300)
+        .padding(EdgeInsets(top: 20, leading: 18, bottom: 18, trailing: 18))
+        .frame(width: 320)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            NotchExpandShape(notchWidth: notchWidth)
                 .fill(Color.black)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    NotchExpandShape(notchWidth: notchWidth)
+                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
                 )
         )
         .accessibilityIdentifier("expandedPanel")
