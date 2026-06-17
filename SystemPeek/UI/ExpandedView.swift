@@ -93,8 +93,8 @@ struct ExpandedView: View {
         // Clear the menu-bar height at the top so content sits below it.
         // No background here: the morphing black NotchShape is drawn behind this
         // (in NotchPanel) so the shape can resize independently of the metrics.
-        .padding(EdgeInsets(top: topInset + 10, leading: 20, bottom: 16, trailing: 20))
-        .frame(width: 460)
+        .padding(EdgeInsets(top: topInset + 16, leading: 28, bottom: 22, trailing: 28))
+        .frame(width: 480)
         .fixedSize()
         .accessibilityIdentifier("expandedPanel")
     }
