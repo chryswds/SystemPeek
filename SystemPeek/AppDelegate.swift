@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         sampler.start()
 
-        let panel = NotchPanel()
+        let panel = NotchPanel(sampler: sampler)
         panel.orderFrontRegardless()
         notchPanel = panel
 

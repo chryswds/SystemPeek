@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		022638407ECC36534C397209 /* ExpandedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D32011815784AED0F57904 /* ExpandedView.swift */; };
 		0BBE0064BA37AEB1F01B1C7E /* DiskUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C4999BD6BCAF6FC7AFA04B8 /* DiskUsage.swift */; };
 		15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A95DCE1F6073AC7A612849 /* AppDelegate.swift */; };
 		395F9B5684155B3BFB6FCC91 /* MetricsSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F57A1DD16853CE63CDFE0F0C /* MetricsSamplerTests.swift */; };
@@ -48,6 +49,7 @@
 		405771037AE4593B034920F8 /* CPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsageTests.swift; sourceTree = "<group>"; };
 		4EDFC797BA1F8F155BAB4D0D /* MetricsSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsSampler.swift; sourceTree = "<group>"; };
 		51B07B1E4D91C65E8FC4133F /* DiskUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskUsageTests.swift; sourceTree = "<group>"; };
+		57D32011815784AED0F57904 /* ExpandedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedView.swift; sourceTree = "<group>"; };
 		5A03431D5562611E9CFAD933 /* SystemPeekUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPeekUITests.swift; sourceTree = "<group>"; };
 		7BEBA7DE395E6C4B114235C0 /* SystemPeekUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SystemPeekUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B790F24495BD5A362AAED1C /* MemoryUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageTests.swift; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 				9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */,
 				C62DF42074CF6C43DB1A6DB1 /* SystemPeekApp.swift */,
 				573ABD741598CB34CF1C6A2C /* Metrics */,
+				580FBEB7855A3BBB0931030E /* UI */,
 			);
 			path = SystemPeek;
 			sourceTree = "<group>";
@@ -105,6 +108,14 @@
 				0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */,
 			);
 			path = Metrics;
+			sourceTree = "<group>";
+		};
+		580FBEB7855A3BBB0931030E /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				57D32011815784AED0F57904 /* ExpandedView.swift */,
+			);
+			path = UI;
 			sourceTree = "<group>";
 		};
 		6CAE8759A2AE52883719BB2B /* SystemPeekUITests */ = {
@@ -253,6 +264,7 @@
 				15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */,
 				A47EDB3E4B801B30F2B6D1CE /* CPUUsage.swift in Sources */,
 				0BBE0064BA37AEB1F01B1C7E /* DiskUsage.swift in Sources */,
+				022638407ECC36534C397209 /* ExpandedView.swift in Sources */,
 				48E3F157DE944F9E2D51C57B /* MemoryUsage.swift in Sources */,
 				E6C3D2F97B203D413FBCCE43 /* MetricsSampler.swift in Sources */,
 				D9BA691796070006A094FB41 /* NotchPanel.swift in Sources */,

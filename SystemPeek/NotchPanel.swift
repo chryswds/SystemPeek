@@ -1,20 +1,19 @@
 import AppKit
+import SwiftUI
 
 /// A borderless, non-activating panel pinned under the screen's notch.
 ///
-/// This commit establishes positioning only: it shows a simple placeholder strip
-/// hugging the notch to prove the geometry is right. Hover-to-expand, live
-/// metrics, and final styling arrive in later commits.
+/// This commit hosts the live telemetry panel (`ExpandedView`) and sizes itself
+/// to that content. Hover-driven collapse/expand arrives in the next commit;
+/// for now the panel always shows the expanded contents.
 final class NotchPanel: NSPanel {
 
-    /// Height of the collapsed strip. Its width is derived from the notch.
-    private let collapsedHeight: CGFloat = 32
-    /// Minimum width when the notch is narrow or absent.
-    private let minimumWidth: CGFloat = 180
+    private let sampler: MetricsSampler
 
-    init() {
+    init(sampler: MetricsSampler) {
+        self.sampler = sampler
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 32),
+            contentRect: NSRect(x: 0, y: 0, width: 290, height: 150),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -31,14 +30,10 @@ final class NotchPanel: NSPanel {
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        // Placeholder visual: a black strip with rounded bottom corners that
-        // visually extends the notch downward.
-        let content = NSView()
-        content.wantsLayer = true
-        content.layer?.backgroundColor = NSColor.black.cgColor
-        content.layer?.cornerRadius = 10
-        content.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        contentView = content
+        let host = NSHostingView(rootView: ExpandedView(sampler: sampler))
+        host.layer?.backgroundColor = .clear
+        contentView = host
+        host.layoutSubtreeIfNeeded()
 
         reposition()
     }
@@ -47,12 +42,16 @@ final class NotchPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    /// Position the strip centered under the notch (or top-center if no notch).
+    /// Size to fit the hosted SwiftUI content and anchor centered under the notch.
     func reposition() {
         guard let screen = NotchPanel.notchScreen() else { return }
         let notch = NotchPanel.notchRect(on: screen)
-        let width = max(notch.width, minimumWidth)
-        let size = NSSize(width: width, height: collapsedHeight)
+
+        var size = contentView?.fittingSize ?? .zero
+        if size.width < 1 || size.height < 1 {
+            size = NSSize(width: 290, height: 150)
+        }
+
         let origin = NSPoint(
             x: notch.midX - size.width / 2,
             y: screen.frame.maxY - size.height
