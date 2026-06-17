@@ -40,18 +40,6 @@ wave glyph in the menu bar for settings and quit.
   (network), `getloadavg`, `sysctl vm.swapusage`, and `proc_listpids` +
   `proc_pid_rusage` (top processes).
 
-## Privacy & security
-
-- Reads only **read-only** system metrics. **No network access. Never runs as
-  root.**
-- Sits next to the camera but **does not access the camera or microphone**.
-- Hover uses only the **cursor position** — it cannot see clicks or keystrokes,
-  and needs no Accessibility/Input-Monitoring permission.
-- **The App Sandbox is off.** Showing the top process by CPU/memory requires
-  enumerating other processes, which the sandbox blocks (`proc_listpids` →
-  `EPERM`). This trades some isolation for that feature; the app remains
-  read-only and unprivileged.
-
 ## Requirements
 
 - macOS 14+ (built/tested on macOS 26, Apple Silicon)
