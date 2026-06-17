@@ -2,9 +2,9 @@ import XCTest
 import AppKit
 import CoreGraphics
 
-/// End-to-end test of the notch widget: launch the real app, move the system
-/// cursor onto the panel, and assert it expands; move the cursor away and assert
-/// it collapses — observed via the live window height from the window list.
+/// End-to-end test of the notch widget: launch the real app, confirm nothing is
+/// shown by default, move the cursor onto the notch region to reveal the panel,
+/// then move away to confirm it hides again — observed via the live window list.
 ///
 /// This deliberately does **not** use `XCUIApplication`: XCUITest's automation
 /// session parks/controls the cursor (overriding CGWarp) and mis-maps hover
@@ -14,8 +14,7 @@ import CoreGraphics
 /// Note: the test moves the cursor, so don't drive the mouse while it runs.
 final class HoverExpandUITests: XCTestCase {
     private let bundleID = "com.chrys.SystemPeek"
-    private let collapsedMax: CGFloat = 60   // collapsed strip is ~32pt tall
-    private let expandedMin: CGFloat = 80    // expanded panel is ~120pt+ tall
+    private let revealedMin: CGFloat = 80   // revealed panel is ~120pt+ tall
 
     override func setUp() {
         continueAfterFailure = false
@@ -26,34 +25,32 @@ final class HoverExpandUITests: XCTestCase {
         terminateSystemPeek()
     }
 
-    func testLaunchHoverExpandCollapse() throws {
+    func testNotchHoverRevealsThenHides() throws {
         try launchSystemPeek()
+        Thread.sleep(forTimeInterval: 1.5)
 
-        // The panel appears collapsed shortly after launch.
-        guard let collapsed = waitForWindow(timeout: 20) else {
-            return XCTFail("SystemPeek panel window did not appear")
-        }
-        XCTAssertLessThan(collapsed.rect.height, collapsedMax, "Panel should start collapsed")
+        // Nothing is shown until the notch is hovered.
+        XCTAssertNil(systemPeekWindow(), "Panel should be hidden until the notch is hovered")
 
-        // Hover: move the cursor onto the panel -> it expands.
-        let center = CGPoint(x: collapsed.rect.midX, y: collapsed.rect.midY)
-        CGWarpMouseCursorPosition(center)
+        let hover = try XCTUnwrap(notchHoverPoint(), "No notch display found")
+
+        // Hover the notch -> the panel drops down.
+        CGWarpMouseCursorPosition(hover)
         XCTAssertTrue(
-            waitForHeight({ $0 > self.expandedMin }, timeout: 5),
-            "Panel should expand when the cursor is over it"
+            waitForWindow(where: { $0.height > revealedMin }, timeout: 6),
+            "Hovering the notch should reveal the panel"
         )
 
-        // Move the cursor well below the panel -> it collapses again.
-        CGWarpMouseCursorPosition(CGPoint(x: center.x, y: center.y + 400))
+        // Move the cursor away -> the panel hides again.
+        CGWarpMouseCursorPosition(awayPoint())
         XCTAssertTrue(
-            waitForHeight({ $0 < self.collapsedMax }, timeout: 5),
-            "Panel should collapse when the cursor leaves"
+            waitForNoWindow(timeout: 6),
+            "Panel should hide when the cursor leaves the notch"
         )
     }
 
     // MARK: - Launching / terminating the real app
 
-    /// Locate the built SystemPeek.app next to the test bundle in the products dir.
     private func appURL() -> URL? {
         var dir = Bundle(for: type(of: self)).bundleURL
         for _ in 0..<8 {
@@ -79,6 +76,30 @@ final class HoverExpandUITests: XCTestCase {
         }
     }
 
+    // MARK: - Target points (in CoreGraphics top-left global coordinates)
+
+    /// Center-top of the notch, where hovering should reveal the panel.
+    private func notchHoverPoint() -> CGPoint? {
+        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }),
+              let left = screen.auxiliaryTopLeftArea,
+              let right = screen.auxiliaryTopRightArea else { return nil }
+        let centerX = (left.maxX + right.minX) / 2
+        let cocoaY = screen.frame.maxY - 3   // just under the notch, inside the trigger zone
+        return CGPoint(x: centerX, y: flipToCG(cocoaY))
+    }
+
+    /// A point far from the notch/panel on the same display.
+    private func awayPoint() -> CGPoint {
+        let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main!
+        return CGPoint(x: screen.frame.midX, y: flipToCG(screen.frame.midY))
+    }
+
+    /// Cocoa global Y (bottom-left) -> CoreGraphics global Y (top-left).
+    private func flipToCG(_ cocoaY: CGFloat) -> CGFloat {
+        let primary = NSScreen.screens.first { $0.frame.origin == .zero } ?? NSScreen.main!
+        return primary.frame.height - cocoaY
+    }
+
     // MARK: - Window polling (CoreGraphics — no special permissions)
 
     private struct Win { let rect: CGRect }
@@ -91,28 +112,28 @@ final class HoverExpandUITests: XCTestCase {
             if let bounds = window[kCGWindowBounds as String] as? [String: Any],
                let x = bounds["X"] as? CGFloat, let y = bounds["Y"] as? CGFloat,
                let width = bounds["Width"] as? CGFloat, let height = bounds["Height"] as? CGFloat,
-               height > 0 {
+               height > 2 {
                 return Win(rect: CGRect(x: x, y: y, width: width, height: height))
             }
         }
         return nil
     }
 
-    private func waitForWindow(timeout: TimeInterval) -> Win? {
+    private func waitForWindow(where predicate: (CGRect) -> Bool, timeout: TimeInterval) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
-            if let window = systemPeekWindow() { return window }
-            usleep(150_000)
-        }
-        return nil
-    }
-
-    private func waitForHeight(_ predicate: (CGFloat) -> Bool, timeout: TimeInterval) -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if let window = systemPeekWindow(), predicate(window.rect.height) { return true }
+            if let window = systemPeekWindow(), predicate(window.rect) { return true }
             usleep(100_000)
         }
         return false
+    }
+
+    private func waitForNoWindow(timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if systemPeekWindow() == nil { return true }
+            usleep(100_000)
+        }
+        return systemPeekWindow() == nil
     }
 }

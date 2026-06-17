@@ -1,36 +1,23 @@
 import AppKit
 import SwiftUI
-import Combine
 
-/// Observable collapse/expand state shared between the panel and its SwiftUI
-/// content so the two stay in sync.
-@MainActor
-final class PanelState: ObservableObject {
-    @Published var isExpanded = false
-}
-
-/// A borderless, non-activating panel pinned just under the screen's notch. Shows
-/// a slim strip by default and expands to the live telemetry panel on hover,
-/// animating its window frame between the two.
+/// A borderless, non-activating panel that is **hidden by default** and drops down
+/// from under the notch when the cursor hovers the notch region.
 ///
 /// Hover is detected by polling the cursor position (`NSEvent.mouseLocation`) on a
-/// timer rather than an NSTrackingArea: tracking-area enter/exit is unreliable for
-/// a non-activating overlay panel and churns when the window resizes. Polling the
-/// pointer location needs no permissions and is **not** input monitoring — it
-/// reads only where the cursor is, never clicks or keystrokes.
+/// timer — it reads only where the cursor is (never clicks or keystrokes), needs no
+/// permissions, and works while the panel is hidden.
 final class NotchPanel: NSPanel {
 
     private let sampler: MetricsSampler
-    private let state = PanelState()
-    private let collapsedHeight: CGFloat = 32
-    private let minimumCollapsedWidth: CGFloat = 150
-    private var expandedSize = NSSize(width: 290, height: 140)
+    private var expandedSize = NSSize(width: 300, height: 150)
     private var hoverTimer: Timer?
+    private var isExpanded = false
 
     init(sampler: MetricsSampler) {
         self.sampler = sampler
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 290, height: 140),
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 150),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -47,16 +34,26 @@ final class NotchPanel: NSPanel {
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        // Measure the expanded content once so frame math is exact.
+        // Measure the content once so frames are exact.
         let measure = NSHostingView(rootView: ExpandedView(sampler: sampler))
         measure.layoutSubtreeIfNeeded()
         let fitting = measure.fittingSize
         if fitting.width > 1, fitting.height > 1 { expandedSize = fitting }
 
-        let hosting = NSHostingView(rootView: NotchContentView(sampler: sampler, state: state))
+        // Pin the content to the top at its full size so that, as the window grows
+        // from a sliver to full height, the panel is revealed top-to-bottom.
+        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler))
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        let container = NSView()
+        container.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.topAnchor.constraint(equalTo: container.topAnchor),
+            hosting.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            hosting.widthAnchor.constraint(equalToConstant: expandedSize.width),
+            hosting.heightAnchor.constraint(equalToConstant: expandedSize.height),
+        ])
 
-        // Dev quit affordance: as an .accessory app there's no Dock/menu, so a
-        // right-click on the panel offers Quit.
+        // Dev quit affordance: right-click the revealed panel to Quit.
         let menu = NSMenu()
         menu.addItem(
             withTitle: "Quit SystemPeek",
@@ -64,9 +61,11 @@ final class NotchPanel: NSPanel {
             keyEquivalent: "q"
         )
         hosting.menu = menu
-        contentView = hosting
+        contentView = container
 
-        setFrame(collapsedFrame(), display: true)
+        // Start hidden; the hover poll reveals it.
+        setFrame(startFrame(), display: false)
+        alphaValue = 0
         startHoverTracking()
     }
 
@@ -74,9 +73,9 @@ final class NotchPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    /// Re-anchor for the current state (e.g. after a display change).
+    /// Re-anchor while revealed (e.g. after a display change).
     func reposition() {
-        setFrame(state.isExpanded ? expandedFrame() : collapsedFrame(), display: true)
+        if isExpanded { setFrame(expandedFrame(), display: true) }
     }
 
     // MARK: - Hover (cursor-position polling)
@@ -89,59 +88,81 @@ final class NotchPanel: NSPanel {
         hoverTimer = timer
     }
 
-    /// Expand while the cursor is within the active zone, collapse otherwise.
-    /// The zone is the (larger) expanded frame while open, giving hysteresis.
+    /// Reveal while the cursor is over the notch region (or the revealed panel),
+    /// hide otherwise. The revealed panel keeps it open so the cursor can move
+    /// from the notch down into the metrics.
     private func updateHover() {
-        let zone = state.isExpanded ? expandedFrame() : collapsedFrame()
-        if zone.contains(NSEvent.mouseLocation) {
+        guard let screen = NotchPanel.notchScreen() else { return }
+        let mouse = NSEvent.mouseLocation
+        let overNotch = notchHoverZone(on: screen).contains(mouse)
+        if isExpanded {
+            if !overNotch && !expandedFrame().contains(mouse) { collapse() }
+        } else if overNotch {
             expand()
-        } else {
-            collapse()
         }
     }
 
     private func expand() {
-        guard !state.isExpanded else { return }
-        state.isExpanded = true
-        animateFrame(to: expandedFrame())
+        guard !isExpanded else { return }
+        isExpanded = true
+        setFrame(startFrame(), display: false)
+        alphaValue = 0
+        orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            animator().alphaValue = 1
+            animator().setFrame(expandedFrame(), display: true)
+        }
     }
 
     private func collapse() {
-        guard state.isExpanded else { return }
-        state.isExpanded = false
-        animateFrame(to: collapsedFrame())
-    }
-
-    private func animateFrame(to target: NSRect) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            animator().setFrame(target, display: true)
-        }
+        guard isExpanded else { return }
+        isExpanded = false
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            animator().alphaValue = 0
+            animator().setFrame(startFrame(), display: true)
+        }, completionHandler: { [weak self] in
+            guard let self, !self.isExpanded else { return }
+            self.orderOut(nil)
+        })
     }
 
     // MARK: - Frames
 
     /// Y of the panel's top edge: just below the notch (or the menu bar on
-    /// notch-less Macs), so the panel lives in real screen pixels — not over the
-    /// physical notch cutout, where the cursor can't actually hover.
+    /// notch-less Macs).
     private func topAnchorY(on screen: NSScreen) -> CGFloat {
-        let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
-        let inset = screen.safeAreaInsets.top
-        return screen.frame.maxY - max(inset, menuBar)
+        screen.frame.maxY - topInset(on: screen)
     }
 
-    private func collapsedFrame() -> NSRect {
-        guard let screen = NotchPanel.notchScreen() else { return frame }
+    private func topInset(on screen: NSScreen) -> CGFloat {
+        max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY)
+    }
+
+    /// The trigger region: the notch itself plus a few pixels below, so moving the
+    /// cursor up to the notch reveals the panel.
+    private func notchHoverZone(on screen: NSScreen) -> NSRect {
         let notch = NotchPanel.notchRect(on: screen)
-        let width = max(notch.width, minimumCollapsedWidth)
-        let top = topAnchorY(on: screen)
+        let inset = topInset(on: screen)
+        let width = max(notch.width, 120)
         return NSRect(
             x: notch.midX - width / 2,
-            y: top - collapsedHeight,
+            y: screen.frame.maxY - inset - 6,
             width: width,
-            height: collapsedHeight
+            height: inset + 6
         )
+    }
+
+    /// Hidden start/end frame: a 1pt sliver under the notch that the reveal grows
+    /// downward from.
+    private func startFrame() -> NSRect {
+        guard let screen = NotchPanel.notchScreen() else { return frame }
+        let notch = NotchPanel.notchRect(on: screen)
+        let top = topAnchorY(on: screen)
+        return NSRect(x: notch.midX - expandedSize.width / 2, y: top - 1, width: expandedSize.width, height: 1)
     }
 
     private func expandedFrame() -> NSRect {
@@ -195,24 +216,4 @@ final class NotchPanel: NSPanel {
     }
 
     private static let minimumWidthFallback: CGFloat = 180
-}
-
-/// Switches between the collapsed strip and the expanded telemetry panel,
-/// cross-fading on state change. The window animates its size in parallel.
-private struct NotchContentView: View {
-    @ObservedObject var sampler: MetricsSampler
-    @ObservedObject var state: PanelState
-
-    var body: some View {
-        ZStack {
-            if state.isExpanded {
-                ExpandedView(sampler: sampler)
-                    .transition(.opacity)
-            } else {
-                CollapsedView(sampler: sampler)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.15), value: state.isExpanded)
-    }
 }

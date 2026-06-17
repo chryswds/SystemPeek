@@ -1,8 +1,9 @@
 # SystemPeek
 
-A macOS notch widget that shows live system telemetry. A small strip sits under
-the notch; **hover it and a panel expands** with current **CPU**, **memory**, and
-**disk** usage, refreshing about once a second. Inspired by NotchNook / Boring Notch.
+A macOS notch widget that shows live system telemetry. It stays **completely
+hidden** until you **hover the notch**, then a panel **drops down** with current
+**CPU**, **memory**, and **disk** usage (with icons), refreshing about once a
+second. Move the cursor away and it hides again. Inspired by NotchNook / Boring Notch.
 
 SystemPeek runs as a background (`accessory`) app — **no Dock icon**.
 

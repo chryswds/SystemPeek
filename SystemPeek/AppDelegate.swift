@@ -13,8 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         sampler.start()
 
+        // The panel manages its own visibility: hidden until the notch is hovered.
         let panel = NotchPanel(sampler: sampler)
-        panel.orderFrontRegardless()
         notchPanel = panel
 
         // Keep the panel anchored when displays change (resolution, plugging in

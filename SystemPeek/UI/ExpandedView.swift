@@ -11,60 +11,78 @@ extension Color {
     }
 }
 
-/// The expanded panel contents: live CPU, memory, and disk usage. Observes the
-/// shared `MetricsSampler` so rows update as new samples arrive.
+/// The drop-down panel contents: live CPU, memory, and disk usage with icons.
+/// Observes the shared `MetricsSampler` so rows update as new samples arrive.
 struct ExpandedView: View {
     @ObservedObject var sampler: MetricsSampler
 
     private var m: SystemMetrics { sampler.metrics }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 14) {
             MetricRow(
+                icon: "cpu",
                 label: "CPU",
                 percent: m.cpuPercent,
                 detail: String(format: "%.0f%%", m.cpuPercent),
                 identifier: "cpu"
             )
             MetricRow(
+                icon: "memorychip",
                 label: "Memory",
                 percent: m.memoryPercent,
                 detail: "\(ByteFormat.string(m.memoryUsedBytes)) / \(ByteFormat.string(m.memoryTotalBytes))",
                 identifier: "memory"
             )
             MetricRow(
+                icon: "internaldrive",
                 label: "Disk",
                 percent: m.diskPercent,
                 detail: "\(ByteFormat.string(m.diskUsedBytes)) / \(ByteFormat.string(m.diskTotalBytes))",
                 identifier: "disk"
             )
         }
-        .padding(14)
-        .frame(width: 290)
-        .background(Color.black, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(16)
+        .frame(width: 300)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.black)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
         .accessibilityIdentifier("expandedPanel")
     }
 }
 
-/// A single labelled metric: name, value detail, and a proportional usage bar.
+/// A single labelled metric: icon, name, value detail, and a usage bar.
 private struct MetricRow: View {
+    let icon: String
     let label: String
     let percent: Double
     let detail: String
     let identifier: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 11, weight: .semibold))
-                Spacer()
-                Text(detail)
-                    .font(.system(size: 11, weight: .regular).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.7))
-                    .accessibilityIdentifier("\(identifier).value")
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.usage(percent))
+                .frame(width: 22, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(label)
+                        .font(.system(size: 12, weight: .semibold))
+                    Spacer()
+                    Text(detail)
+                        .font(.system(size: 11, weight: .regular).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.65))
+                        .accessibilityIdentifier("\(identifier).value")
+                }
+                UsageBar(percent: percent)
             }
-            UsageBar(percent: percent)
         }
         .foregroundStyle(.white)
         .accessibilityElement(children: .contain)
