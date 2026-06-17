@@ -55,8 +55,8 @@ struct NotchShape: Shape {
     }
 }
 
-/// The drop-down panel contents: live CPU, memory, and disk usage with icons.
-/// Observes the shared `MetricsSampler` so rows update as new samples arrive.
+/// The drop-down panel contents: live system telemetry laid out as a 2x2 grid
+/// (CPU + Memory on top, Disk + Network below) with a thin divider between rows.
 struct ExpandedView: View {
     @ObservedObject var sampler: MetricsSampler
     /// Menu-bar/notch height to clear at the top so content sits in the visible area.
@@ -64,88 +64,100 @@ struct ExpandedView: View {
 
     private var m: SystemMetrics { sampler.metrics }
 
-    /// Combined throughput as a percentage of a ~100 Mbps reference, for the bar.
-    private var networkPercent: Double {
-        let cap = 12_500_000.0
-        return min((m.networkDownBytesPerSec + m.networkUpBytesPerSec) / cap * 100, 100)
-    }
-
+    private func percentString(_ value: Double) -> String { String(format: "%.0f%%", value) }
     private func rate(_ bytesPerSecond: Double) -> String {
         ByteFormat.string(Int64(max(bytesPerSecond, 0))) + "/s"
     }
 
     var body: some View {
-        VStack(spacing: 14) {
-            MetricRow(
-                icon: "cpu",
-                label: "CPU",
-                percent: m.cpuPercent,
-                detail: String(format: "%.0f%%", m.cpuPercent),
-                identifier: "cpu"
-            )
-            MetricRow(
-                icon: "memorychip",
-                label: "Memory",
-                percent: m.memoryPercent,
-                detail: "\(ByteFormat.string(m.memoryUsedBytes)) / \(ByteFormat.string(m.memoryTotalBytes))",
-                identifier: "memory"
-            )
-            MetricRow(
-                icon: "internaldrive",
-                label: "Disk",
-                percent: m.diskPercent,
-                detail: "\(ByteFormat.string(m.diskUsedBytes)) / \(ByteFormat.string(m.diskTotalBytes))",
-                identifier: "disk"
-            )
-            MetricRow(
-                icon: "arrow.up.arrow.down",
-                label: "Network",
-                percent: networkPercent,
-                detail: "↓ \(rate(m.networkDownBytesPerSec))   ↑ \(rate(m.networkUpBytesPerSec))",
-                identifier: "network"
-            )
+        VStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                StatCell(icon: "cpu", label: "CPU",
+                         value: percentString(m.cpuPercent), percent: m.cpuPercent,
+                         identifier: "cpu")
+                StatCell(icon: "memorychip", label: "Memory",
+                         value: percentString(m.memoryPercent), percent: m.memoryPercent,
+                         identifier: "memory")
+                StatCell(icon: "internaldrive", label: "Disk",
+                         value: percentString(m.diskPercent), percent: m.diskPercent,
+                         identifier: "disk")
+            }
+
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
+
+            NetworkRow(down: rate(m.networkDownBytesPerSec),
+                       up: rate(m.networkUpBytesPerSec))
         }
         // Clear the menu-bar height at the top so content sits below it.
         // No background here: the morphing black NotchShape is drawn behind this
         // (in NotchPanel) so the shape can resize independently of the metrics.
-        .padding(EdgeInsets(top: topInset + 8, leading: 22, bottom: 20, trailing: 22))
-        .frame(width: 340)
+        .padding(EdgeInsets(top: topInset + 10, leading: 20, bottom: 16, trailing: 20))
+        .frame(width: 460)
         .fixedSize()
         .accessibilityIdentifier("expandedPanel")
     }
 }
 
-/// A single labelled metric: icon, name, value detail, and a usage bar.
-private struct MetricRow: View {
+/// A grid cell with an icon, label, percentage value, and a usage bar.
+private struct StatCell: View {
     let icon: String
     let label: String
+    let value: String
     let percent: Double
-    let detail: String
     let identifier: String
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.usage(percent))
-                .frame(width: 22, alignment: .center)
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(label)
-                        .font(.system(size: 12, weight: .semibold))
-                    Spacer()
-                    Text(detail)
-                        .font(.system(size: 11, weight: .regular).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.65))
-                        .accessibilityIdentifier("\(identifier).value")
-                }
-                UsageBar(percent: percent)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.usage(percent))
+                    .frame(width: 18)
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+                Spacer(minLength: 4)
+                Text(value)
+                    .font(.system(size: 12, weight: .regular).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.7))
+                    .accessibilityIdentifier("\(identifier).value")
             }
+            UsageBar(percent: percent)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(.white)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("\(identifier).row")
+    }
+}
+
+/// The network row, spanning the full width: icon + label on the left,
+/// download/upload rates on the right.
+private struct NetworkRow: View {
+    let down: String
+    let up: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 18)
+            Text("Network")
+                .font(.system(size: 12, weight: .semibold))
+            Spacer(minLength: 8)
+            HStack(spacing: 16) {
+                Text("↓ \(down)")
+                Text("↑ \(up)")
+            }
+            .font(.system(size: 12, weight: .regular).monospacedDigit())
+            .foregroundStyle(.white.opacity(0.75))
+        }
+        .frame(maxWidth: .infinity)
+        .foregroundStyle(.white)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("network.row")
     }
 }
 
