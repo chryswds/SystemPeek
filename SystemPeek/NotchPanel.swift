@@ -94,10 +94,12 @@ final class NotchPanel: NSPanel {
     private func updateHover() {
         guard let screen = NotchPanel.notchScreen() else { return }
         let mouse = NSEvent.mouseLocation
-        let overNotch = notchHoverZone(on: screen).contains(mouse)
         if isExpanded {
-            if !overNotch && !expandedFrame().contains(mouse) { collapse() }
-        } else if overNotch {
+            // Stay open anywhere from the panel up to the very top of the screen,
+            // across the panel's full width — so moving up to/under the notch (even
+            // off-centre) keeps it revealed.
+            if !keepOpenZone(on: screen).contains(mouse) { collapse() }
+        } else if notchHoverZone(on: screen).contains(mouse) {
             expand()
         }
     }
@@ -153,6 +155,22 @@ final class NotchPanel: NSPanel {
             y: screen.frame.maxY - inset - 6,
             width: width,
             height: inset + 6
+        )
+    }
+
+    /// The keep-open region while revealed: a full-panel-width column from the
+    /// bottom of the panel all the way up to the top of the screen. This spans the
+    /// panel, the gap, the notch, and the menu-bar area beside it, so the cursor
+    /// can move freely between the notch and the metrics without it collapsing.
+    private func keepOpenZone(on screen: NSScreen) -> NSRect {
+        let notch = NotchPanel.notchRect(on: screen)
+        let panel = expandedFrame()
+        let width = max(panel.width, notch.width)
+        return NSRect(
+            x: notch.midX - width / 2,
+            y: panel.minY,
+            width: width,
+            height: screen.frame.maxY - panel.minY
         )
     }
 
