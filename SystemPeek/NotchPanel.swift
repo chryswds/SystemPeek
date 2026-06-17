@@ -11,12 +11,17 @@ final class NotchPanel: NSPanel {
 
     private let sampler: MetricsSampler
     private let state = PanelState()
+    private let panelTopInset: CGFloat
+    private let onOpenSettings: (() -> Void)?
     private var expandedSize = NSSize(width: 300, height: 150)
     private var hoverTimer: Timer?
     private var isExpanded = false
 
-    init(sampler: MetricsSampler) {
+    init(sampler: MetricsSampler, onOpenSettings: (() -> Void)? = nil) {
         self.sampler = sampler
+        self.onOpenSettings = onOpenSettings
+        self.panelTopInset = NotchPanel.notchScreen()
+            .map { max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY) } ?? 32
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 150),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -37,15 +42,9 @@ final class NotchPanel: NSPanel {
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        // Menu-bar/notch height to clear at the top so content sits in the visible area.
-        let topInset: CGFloat = NotchPanel.notchScreen()
-            .map { max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY) } ?? 32
-
-        // Measure the content once so frames are exact.
-        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler, topInset: topInset))
-        measure.layoutSubtreeIfNeeded()
-        let fitting = measure.fittingSize
-        if fitting.width > 1, fitting.height > 1 { expandedSize = fitting }
+        // Measure the content (respecting current settings) so frames are exact.
+        expandedSize = NotchPanel.measureIsland(sampler: sampler, topInset: panelTopInset)
+        state.islandSize = expandedSize
 
         // The notch's footprint, used as the morph's start size.
         let notchSize: CGSize = NotchPanel.notchScreen().map {
@@ -53,12 +52,12 @@ final class NotchPanel: NSPanel {
                    height: max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY))
         } ?? CGSize(width: 180, height: 32)
 
-        // The window stays at the fixed island size; the morph happens entirely in
-        // SwiftUI (the shape grows from the notch size, metrics fade in) so the
-        // window frame never animates — no sliding/glitching.
+        // The window stays at the island size; the morph happens entirely in SwiftUI
+        // (the shape grows from the notch size, metrics fade in) so the window frame
+        // never animates — no sliding/glitching. The island size lives in `state` so
+        // it can update when settings change which metrics are shown.
         let hosting = NSHostingView(rootView: NotchContentView(
-            sampler: sampler, state: state, topInset: topInset,
-            notchSize: notchSize, islandSize: expandedSize
+            sampler: sampler, state: state, topInset: panelTopInset, notchSize: notchSize
         ))
         hosting.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
@@ -70,19 +69,44 @@ final class NotchPanel: NSPanel {
             hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
-        // Dev quit affordance: right-click the revealed panel to Quit.
+        // Right-click menu: Settings and Quit.
         let menu = NSMenu()
-        menu.addItem(
-            withTitle: "Quit SystemPeek",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit SystemPeek",
+                     action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         hosting.menu = menu
         contentView = container
 
-        // Fixed island-sized window, anchored to the top; starts hidden.
+        // Island-sized window, anchored to the top; starts hidden.
         setFrame(expandedFrame(), display: false)
         startHoverTracking()
+
+        // Re-measure and resize when settings change which metrics are shown.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(settingsChanged),
+            name: UserDefaults.didChangeNotification, object: nil
+        )
+    }
+
+    @objc private func openSettings() { onOpenSettings?() }
+
+    @objc private func settingsChanged() {
+        let size = NotchPanel.measureIsland(sampler: sampler, topInset: panelTopInset)
+        guard size != expandedSize else { return }
+        expandedSize = size
+        state.islandSize = size
+        if isExpanded { setFrame(expandedFrame(), display: true) }
+    }
+
+    /// Measures the island's fitting size for the metrics currently enabled.
+    private static func measureIsland(sampler: MetricsSampler, topInset: CGFloat) -> NSSize {
+        let host = NSHostingView(rootView: ExpandedView(sampler: sampler, topInset: topInset))
+        host.layoutSubtreeIfNeeded()
+        let size = host.fittingSize
+        return (size.width > 1 && size.height > 1) ? size : NSSize(width: 480, height: 150)
     }
 
     // Display-only panel: never becomes key or main.
@@ -250,6 +274,7 @@ final class NotchPanel: NSPanel {
 @MainActor
 final class PanelState: ObservableObject {
     @Published var isExpanded = false
+    @Published var islandSize: CGSize = CGSize(width: 480, height: 150)
 }
 
 /// The panel's content, in a fixed island-sized container. The black NotchShape
@@ -260,11 +285,11 @@ private struct NotchContentView: View {
     @ObservedObject var state: PanelState
     var topInset: CGFloat
     var notchSize: CGSize
-    var islandSize: CGSize
 
     var body: some View {
-        let w = state.isExpanded ? islandSize.width : notchSize.width
-        let h = state.isExpanded ? islandSize.height : notchSize.height
+        let island = state.islandSize
+        let w = state.isExpanded ? island.width : notchSize.width
+        let h = state.isExpanded ? island.height : notchSize.height
         ZStack(alignment: .top) {
             NotchShape()
                 .fill(Color.black)
@@ -280,6 +305,6 @@ private struct NotchContentView: View {
                 .opacity(state.isExpanded ? 1 : 0)
                 .animation(.easeOut(duration: 0.08), value: state.isExpanded)
         }
-        .frame(width: islandSize.width, height: islandSize.height, alignment: .top)
+        .frame(width: island.width, height: island.height, alignment: .top)
     }
 }

@@ -109,6 +109,9 @@ final class HoverExpandUITests: XCTestCase {
             return nil
         }
         for window in list where (window[kCGWindowOwnerName as String] as? String) == "SystemPeek" {
+            // Only the floating notch panel (high window layer); ignore the normal
+            // settings window (layer 0).
+            guard (window[kCGWindowLayer as String] as? Int ?? 0) > 0 else { continue }
             if let bounds = window[kCGWindowBounds as String] as? [String: Any],
                let x = bounds["X"] as? CGFloat, let y = bounds["Y"] as? CGFloat,
                let width = bounds["Width"] as? CGFloat, let height = bounds["Height"] as? CGFloat,

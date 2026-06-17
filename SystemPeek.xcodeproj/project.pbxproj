@@ -16,6 +16,7 @@
 		48E3F157DE944F9E2D51C57B /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */; };
 		6AB6B7E1FF7CB10993574DB9 /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405771037AE4593B034920F8 /* CPUUsageTests.swift */; };
 		6E3F6BEC74A349A1601B1A07 /* NetworkUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F334A78BD7124873724E6FBC /* NetworkUsage.swift */; };
+		77BD231ABFDD0A1702F83016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9CAB86F398211FB5A926449 /* SettingsView.swift */; };
 		9AB1A3C3DD4D497C5DDBD0EE /* LoadAverage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E658FCAA684A2FF882D8BAA7 /* LoadAverage.swift */; };
 		A47EDB3E4B801B30F2B6D1CE /* CPUUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 203332E09DB8CBE147EF2ADA /* CPUUsage.swift */; };
 		BACCB721CCA4EC7F840F53F5 /* SystemMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */; };
@@ -66,6 +67,7 @@
 		9A89D24F1834FE566F1694DB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SystemPeek.entitlements; sourceTree = "<group>"; };
 		A3DCC5C0E45A63D40F87F6BE /* SystemPeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SystemPeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9CAB86F398211FB5A926449 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C62DF42074CF6C43DB1A6DB1 /* SystemPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPeekApp.swift; sourceTree = "<group>"; };
 		E658FCAA684A2FF882D8BAA7 /* LoadAverage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadAverage.swift; sourceTree = "<group>"; };
 		F04F88619AB48A894CCDD684 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
@@ -132,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				57D32011815784AED0F57904 /* ExpandedView.swift */,
+				A9CAB86F398211FB5A926449 /* SettingsView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -291,6 +294,7 @@
 				6E3F6BEC74A349A1601B1A07 /* NetworkUsage.swift in Sources */,
 				D9BA691796070006A094FB41 /* NotchPanel.swift in Sources */,
 				F68CEB7CF7482E4C5B22C0DD /* ProcessUsage.swift in Sources */,
+				77BD231ABFDD0A1702F83016 /* SettingsView.swift in Sources */,
 				0D0B1EF69E1C054F016645A3 /* SwapUsage.swift in Sources */,
 				BACCB721CCA4EC7F840F53F5 /* SystemMetrics.swift in Sources */,
 				D826E812A44E1DEAB9FD30B1 /* SystemPeekApp.swift in Sources */,

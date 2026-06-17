@@ -62,7 +62,21 @@ struct ExpandedView: View {
     /// Menu-bar/notch height to clear at the top so content sits in the visible area.
     var topInset: CGFloat = 32
 
+    @AppStorage(MetricKey.cpu) private var showCPU = true
+    @AppStorage(MetricKey.memory) private var showMemory = true
+    @AppStorage(MetricKey.disk) private var showDisk = true
+    @AppStorage(MetricKey.network) private var showNetwork = true
+    @AppStorage(MetricKey.load) private var showLoad = true
+    @AppStorage(MetricKey.swap) private var showSwap = true
+    @AppStorage(MetricKey.topCPU) private var showTopCPU = true
+    @AppStorage(MetricKey.topMemory) private var showTopMemory = true
+
     private var m: SystemMetrics { sampler.metrics }
+
+    private var topRowVisible: Bool { showCPU || showMemory || showDisk }
+    private var bottomVisible: Bool {
+        showNetwork || showLoad || showSwap || showTopCPU || showTopMemory
+    }
 
     private func percentString(_ value: Double) -> String { String(format: "%.0f%%", value) }
     private func rate(_ bytesPerSecond: Double) -> String {
@@ -72,39 +86,61 @@ struct ExpandedView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                StatCell(icon: "cpu", label: "CPU",
-                         value: percentString(m.cpuPercent), percent: m.cpuPercent,
-                         identifier: "cpu")
-                StatCell(icon: "memorychip", label: "Memory",
-                         value: percentString(m.memoryPercent), percent: m.memoryPercent,
-                         identifier: "memory")
-                StatCell(icon: "internaldrive", label: "Disk",
-                         value: percentString(m.diskPercent), percent: m.diskPercent,
-                         identifier: "disk")
+            if topRowVisible {
+                HStack(alignment: .top, spacing: 12) {
+                    if showCPU {
+                        StatCell(icon: "cpu", label: "CPU",
+                                 value: percentString(m.cpuPercent), percent: m.cpuPercent,
+                                 identifier: "cpu")
+                    }
+                    if showMemory {
+                        StatCell(icon: "memorychip", label: "Memory",
+                                 value: percentString(m.memoryPercent), percent: m.memoryPercent,
+                                 identifier: "memory")
+                    }
+                    if showDisk {
+                        StatCell(icon: "internaldrive", label: "Disk",
+                                 value: percentString(m.diskPercent), percent: m.diskPercent,
+                                 identifier: "disk")
+                    }
+                }
             }
 
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 1)
-
-            NetworkRow(down: rate(m.networkDownBytesPerSec),
-                       up: rate(m.networkUpBytesPerSec))
-
-            HStack(spacing: 24) {
-                InfoItem(label: "Load",
-                         value: String(format: "%.2f  %.2f  %.2f", m.loadOne, m.loadFive, m.loadFifteen))
-                InfoItem(label: "Swap", value: ByteFormat.string(m.swapUsedBytes))
+            if topRowVisible && bottomVisible {
+                Rectangle()
+                    .fill(Color.white.opacity(0.08))
+                    .frame(height: 1)
             }
 
-            HighlightItem(icon: "cpu", title: "Top CPU",
-                          name: m.topCPUName.isEmpty ? "—" : m.topCPUName,
-                          value: m.topCPUName.isEmpty ? "" : String(format: "%.0f%%", m.topCPUPercent),
-                          valueColor: .usage(m.topCPUPercent))
-            HighlightItem(icon: "memorychip", title: "Top Mem",
-                          name: m.topMemoryName.isEmpty ? "—" : m.topMemoryName,
-                          value: m.topMemoryName.isEmpty ? "" : ByteFormat.string(m.topMemoryBytes),
-                          valueColor: Color(red: 0.46, green: 0.78, blue: 1.0))
+            if showNetwork {
+                NetworkRow(down: rate(m.networkDownBytesPerSec),
+                           up: rate(m.networkUpBytesPerSec))
+            }
+
+            if showLoad || showSwap {
+                HStack(spacing: 24) {
+                    if showLoad {
+                        InfoItem(label: "Load",
+                                 value: String(format: "%.2f  %.2f  %.2f", m.loadOne, m.loadFive, m.loadFifteen))
+                    }
+                    if showSwap {
+                        InfoItem(label: "Swap", value: ByteFormat.string(m.swapUsedBytes))
+                    }
+                }
+            }
+
+            if showTopCPU {
+                HighlightItem(icon: "cpu", title: "Top CPU",
+                              name: m.topCPUName.isEmpty ? "—" : m.topCPUName,
+                              value: m.topCPUName.isEmpty ? "" : String(format: "%.0f%%", m.topCPUPercent),
+                              valueColor: .usage(m.topCPUPercent))
+            }
+            if showTopMemory {
+                HighlightItem(icon: "memorychip", title: "Top Mem",
+                              name: m.topMemoryName.isEmpty ? "—" : m.topMemoryName,
+                              value: m.topMemoryName.isEmpty ? "" : ByteFormat.string(m.topMemoryBytes),
+                              valueColor: Color(red: 0.46, green: 0.78, blue: 1.0))
+            }
         }
         // Clear the menu-bar height at the top so content sits below it.
         // No background here: the morphing black NotchShape is drawn behind this
