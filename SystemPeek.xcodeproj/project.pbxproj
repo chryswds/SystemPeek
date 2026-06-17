@@ -12,8 +12,10 @@
 		15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A95DCE1F6073AC7A612849 /* AppDelegate.swift */; };
 		395F9B5684155B3BFB6FCC91 /* MetricsSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F57A1DD16853CE63CDFE0F0C /* MetricsSamplerTests.swift */; };
 		48E3F157DE944F9E2D51C57B /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */; };
+		59D21A852F6E4A73F3AD4BF0 /* BatteryUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C652B3F2EBC8A38CB247A261 /* BatteryUsageTests.swift */; };
 		6AB6B7E1FF7CB10993574DB9 /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405771037AE4593B034920F8 /* CPUUsageTests.swift */; };
 		6E3F6BEC74A349A1601B1A07 /* NetworkUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F334A78BD7124873724E6FBC /* NetworkUsage.swift */; };
+		85F1BE1943AD97AB04F2F732 /* BatteryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A0CA151EB4B35E1EFD4E6F /* BatteryUsage.swift */; };
 		A47EDB3E4B801B30F2B6D1CE /* CPUUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 203332E09DB8CBE147EF2ADA /* CPUUsage.swift */; };
 		BACCB721CCA4EC7F840F53F5 /* SystemMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */; };
 		BD5F0A6660731D77FFE8A74C /* DiskUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B07B1E4D91C65E8FC4133F /* DiskUsageTests.swift */; };
@@ -46,6 +48,7 @@
 		02A95DCE1F6073AC7A612849 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsage.swift; sourceTree = "<group>"; };
 		0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetrics.swift; sourceTree = "<group>"; };
+		12A0CA151EB4B35E1EFD4E6F /* BatteryUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryUsage.swift; sourceTree = "<group>"; };
 		1C4999BD6BCAF6FC7AFA04B8 /* DiskUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskUsage.swift; sourceTree = "<group>"; };
 		203332E09DB8CBE147EF2ADA /* CPUUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsage.swift; sourceTree = "<group>"; };
 		405771037AE4593B034920F8 /* CPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsageTests.swift; sourceTree = "<group>"; };
@@ -60,6 +63,7 @@
 		9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SystemPeek.entitlements; sourceTree = "<group>"; };
 		A3DCC5C0E45A63D40F87F6BE /* SystemPeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SystemPeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C62DF42074CF6C43DB1A6DB1 /* SystemPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPeekApp.swift; sourceTree = "<group>"; };
+		C652B3F2EBC8A38CB247A261 /* BatteryUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryUsageTests.swift; sourceTree = "<group>"; };
 		F04F88619AB48A894CCDD684 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		F32CB47FFB35C68938619571 /* SystemPeek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SystemPeek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F334A78BD7124873724E6FBC /* NetworkUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUsage.swift; sourceTree = "<group>"; };
@@ -94,6 +98,7 @@
 		3D4D9673666C871004EC9B22 /* SystemPeekTests */ = {
 			isa = PBXGroup;
 			children = (
+				C652B3F2EBC8A38CB247A261 /* BatteryUsageTests.swift */,
 				405771037AE4593B034920F8 /* CPUUsageTests.swift */,
 				51B07B1E4D91C65E8FC4133F /* DiskUsageTests.swift */,
 				8B790F24495BD5A362AAED1C /* MemoryUsageTests.swift */,
@@ -106,6 +111,7 @@
 		573ABD741598CB34CF1C6A2C /* Metrics */ = {
 			isa = PBXGroup;
 			children = (
+				12A0CA151EB4B35E1EFD4E6F /* BatteryUsage.swift */,
 				203332E09DB8CBE147EF2ADA /* CPUUsage.swift */,
 				1C4999BD6BCAF6FC7AFA04B8 /* DiskUsage.swift */,
 				07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */,
@@ -256,6 +262,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59D21A852F6E4A73F3AD4BF0 /* BatteryUsageTests.swift in Sources */,
 				6AB6B7E1FF7CB10993574DB9 /* CPUUsageTests.swift in Sources */,
 				BD5F0A6660731D77FFE8A74C /* DiskUsageTests.swift in Sources */,
 				DD515E8B319927A2F7440CA2 /* MemoryUsageTests.swift in Sources */,
@@ -269,6 +276,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */,
+				85F1BE1943AD97AB04F2F732 /* BatteryUsage.swift in Sources */,
 				A47EDB3E4B801B30F2B6D1CE /* CPUUsage.swift in Sources */,
 				0BBE0064BA37AEB1F01B1C7E /* DiskUsage.swift in Sources */,
 				022638407ECC36534C397209 /* ExpandedView.swift in Sources */,

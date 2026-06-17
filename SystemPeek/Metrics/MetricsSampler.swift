@@ -71,6 +71,12 @@ final class MetricsSampler: ObservableObject {
             previousNetworkTime = now
         }
 
+        if let battery = BatteryUsage.currentSample() {
+            next.batteryPercent = battery.percent
+            next.batteryIsCharging = battery.isCharging
+            next.batteryPresent = battery.isPresent
+        }
+
         metrics = next
     }
 

@@ -22,6 +22,11 @@ final class MetricsSamplerTests: XCTestCase {
 
         XCTAssertGreaterThanOrEqual(m.networkDownBytesPerSec, 0)
         XCTAssertGreaterThanOrEqual(m.networkUpBytesPerSec, 0)
+
+        if m.batteryPresent {
+            XCTAssertGreaterThanOrEqual(m.batteryPercent, 0)
+            XCTAssertLessThanOrEqual(m.batteryPercent, 100)
+        }
     }
 
     func testRepeatedSamplingStaysConsistent() {

@@ -71,7 +71,7 @@ struct ExpandedView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(alignment: .top, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
                 StatCell(icon: "cpu", label: "CPU",
                          value: percentString(m.cpuPercent), percent: m.cpuPercent,
                          identifier: "cpu")
@@ -81,6 +81,13 @@ struct ExpandedView: View {
                 StatCell(icon: "internaldrive", label: "Disk",
                          value: percentString(m.diskPercent), percent: m.diskPercent,
                          identifier: "disk")
+                if m.batteryPresent {
+                    StatCell(icon: batteryIcon(m.batteryPercent, m.batteryIsCharging),
+                             label: "Battery",
+                             value: percentString(m.batteryPercent), percent: m.batteryPercent,
+                             identifier: "battery",
+                             tint: batteryColor(m.batteryPercent, m.batteryIsCharging))
+                }
             }
 
             Rectangle()
@@ -94,9 +101,31 @@ struct ExpandedView: View {
         // No background here: the morphing black NotchShape is drawn behind this
         // (in NotchPanel) so the shape can resize independently of the metrics.
         .padding(EdgeInsets(top: topInset + 16, leading: 28, bottom: 22, trailing: 28))
-        .frame(width: 480)
+        .frame(width: 560)
         .fixedSize()
         .accessibilityIdentifier("expandedPanel")
+    }
+}
+
+/// Battery has the opposite sense to usage (full is good): green when high or
+/// charging, red when low.
+private func batteryColor(_ percent: Double, _ charging: Bool) -> Color {
+    if charging { return .green }
+    switch percent {
+    case ..<20: return .red
+    case ..<40: return .yellow
+    default: return .green
+    }
+}
+
+private func batteryIcon(_ percent: Double, _ charging: Bool) -> String {
+    if charging { return "battery.100percent.bolt" }
+    switch percent {
+    case ..<13: return "battery.0percent"
+    case ..<38: return "battery.25percent"
+    case ..<63: return "battery.50percent"
+    case ..<88: return "battery.75percent"
+    default: return "battery.100percent"
     }
 }
 
@@ -107,13 +136,16 @@ private struct StatCell: View {
     let value: String
     let percent: Double
     let identifier: String
+    var tint: Color? = nil
+
+    private var color: Color { tint ?? .usage(percent) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.usage(percent))
+                    .foregroundStyle(color)
                     .frame(width: 18)
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
@@ -123,7 +155,7 @@ private struct StatCell: View {
                     .foregroundStyle(.white.opacity(0.7))
                     .accessibilityIdentifier("\(identifier).value")
             }
-            UsageBar(percent: percent)
+            UsageBar(percent: percent, tint: color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(.white)
@@ -164,13 +196,14 @@ private struct NetworkRow: View {
 /// A horizontal bar filled proportionally to `percent` (0...100), colour-coded.
 private struct UsageBar: View {
     let percent: Double
+    var tint: Color
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.15))
                 Capsule()
-                    .fill(Color.usage(clamped))
+                    .fill(tint)
                     .frame(width: geo.size.width * CGFloat(clamped / 100))
             }
         }
