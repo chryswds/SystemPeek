@@ -81,13 +81,6 @@ struct ExpandedView: View {
                 StatCell(icon: "internaldrive", label: "Disk",
                          value: percentString(m.diskPercent), percent: m.diskPercent,
                          identifier: "disk")
-                if m.batteryPresent {
-                    StatCell(icon: batteryIcon(m.batteryPercent, m.batteryIsCharging),
-                             label: "Battery",
-                             value: percentString(m.batteryPercent), percent: m.batteryPercent,
-                             identifier: "battery",
-                             tint: batteryColor(m.batteryPercent, m.batteryIsCharging))
-                }
             }
 
             Rectangle()
@@ -96,36 +89,50 @@ struct ExpandedView: View {
 
             NetworkRow(down: rate(m.networkDownBytesPerSec),
                        up: rate(m.networkUpBytesPerSec))
+
+            LoadSwapRow(
+                load: String(format: "%.2f  %.2f  %.2f", m.loadOne, m.loadFive, m.loadFifteen),
+                swap: ByteFormat.string(m.swapUsedBytes)
+            )
         }
         // Clear the menu-bar height at the top so content sits below it.
         // No background here: the morphing black NotchShape is drawn behind this
         // (in NotchPanel) so the shape can resize independently of the metrics.
         .padding(EdgeInsets(top: topInset + 16, leading: 28, bottom: 22, trailing: 28))
-        .frame(width: 560)
+        .frame(width: 480)
         .fixedSize()
         .accessibilityIdentifier("expandedPanel")
     }
 }
 
-/// Battery has the opposite sense to usage (full is good): green when high or
-/// charging, red when low.
-private func batteryColor(_ percent: Double, _ charging: Bool) -> Color {
-    if charging { return .green }
-    switch percent {
-    case ..<20: return .red
-    case ..<40: return .yellow
-    default: return .green
-    }
-}
+/// Full-width row pairing two "hidden" metrics: CPU load average (1/5/15 min) on
+/// the left and swap used on the right.
+private struct LoadSwapRow: View {
+    let load: String
+    let swap: String
 
-private func batteryIcon(_ percent: Double, _ charging: Bool) -> String {
-    if charging { return "battery.100percent.bolt" }
-    switch percent {
-    case ..<13: return "battery.0percent"
-    case ..<38: return "battery.25percent"
-    case ..<63: return "battery.50percent"
-    case ..<88: return "battery.75percent"
-    default: return "battery.100percent"
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "speedometer")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 18)
+            Text("Load")
+                .font(.system(size: 12, weight: .semibold))
+            Text(load)
+                .font(.system(size: 12, weight: .regular).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.75))
+            Spacer(minLength: 12)
+            Text("Swap")
+                .font(.system(size: 12, weight: .semibold))
+            Text(swap)
+                .font(.system(size: 12, weight: .regular).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.75))
+        }
+        .frame(maxWidth: .infinity)
+        .foregroundStyle(.white)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("loadswap.row")
     }
 }
 

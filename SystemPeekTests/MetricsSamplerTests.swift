@@ -23,10 +23,10 @@ final class MetricsSamplerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(m.networkDownBytesPerSec, 0)
         XCTAssertGreaterThanOrEqual(m.networkUpBytesPerSec, 0)
 
-        if m.batteryPresent {
-            XCTAssertGreaterThanOrEqual(m.batteryPercent, 0)
-            XCTAssertLessThanOrEqual(m.batteryPercent, 100)
-        }
+        XCTAssertGreaterThanOrEqual(m.loadOne, 0)
+        XCTAssertGreaterThanOrEqual(m.loadFive, 0)
+        XCTAssertGreaterThanOrEqual(m.loadFifteen, 0)
+        XCTAssertLessThanOrEqual(m.swapUsedBytes, max(m.swapTotalBytes, m.swapUsedBytes))
     }
 
     func testRepeatedSamplingStaysConsistent() {

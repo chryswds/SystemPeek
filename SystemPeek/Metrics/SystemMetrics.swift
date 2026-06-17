@@ -10,9 +10,11 @@ struct SystemMetrics: Equatable {
     var diskTotalBytes: Int64
     var networkDownBytesPerSec: Double = 0
     var networkUpBytesPerSec: Double = 0
-    var batteryPercent: Double = 0
-    var batteryIsCharging: Bool = false
-    var batteryPresent: Bool = false
+    var loadOne: Double = 0
+    var loadFive: Double = 0
+    var loadFifteen: Double = 0
+    var swapUsedBytes: UInt64 = 0
+    var swapTotalBytes: UInt64 = 0
 
     static let zero = SystemMetrics(
         cpuPercent: 0,
