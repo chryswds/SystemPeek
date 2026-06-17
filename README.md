@@ -8,6 +8,10 @@ Inspired by NotchNook / Boring Notch.
 SystemPeek runs as a background (`accessory`) app: no Dock icon, just a small
 wave glyph in the menu bar for settings and quit.
 
+<p align="center">
+  <img src="docs/demo.gif" alt="SystemPeek revealing system metrics on notch hover" width="760">
+</p>
+
 ## Features
 
 - **Hover-to-reveal** — nothing on screen until your cursor reaches the notch;
