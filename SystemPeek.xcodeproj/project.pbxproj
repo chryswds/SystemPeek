@@ -11,6 +11,7 @@
 		75B724E9143FF90AE484935B /* SystemPeekTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E30EE5F39CE8341D0ED1FB3 /* SystemPeekTests.swift */; };
 		82E80654FF537C0C6BB4E963 /* SystemPeekUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A03431D5562611E9CFAD933 /* SystemPeekUITests.swift */; };
 		D826E812A44E1DEAB9FD30B1 /* SystemPeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62DF42074CF6C43DB1A6DB1 /* SystemPeekApp.swift */; };
+		D9BA691796070006A094FB41 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04F88619AB48A894CCDD684 /* NotchPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,6 +40,7 @@
 		9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SystemPeek.entitlements; sourceTree = "<group>"; };
 		A3DCC5C0E45A63D40F87F6BE /* SystemPeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SystemPeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C62DF42074CF6C43DB1A6DB1 /* SystemPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPeekApp.swift; sourceTree = "<group>"; };
+		F04F88619AB48A894CCDD684 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		F32CB47FFB35C68938619571 /* SystemPeek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SystemPeek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -48,6 +50,7 @@
 			children = (
 				02A95DCE1F6073AC7A612849 /* AppDelegate.swift */,
 				9A89D24F1834FE566F1694DB /* Info.plist */,
+				F04F88619AB48A894CCDD684 /* NotchPanel.swift */,
 				9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */,
 				C62DF42074CF6C43DB1A6DB1 /* SystemPeekApp.swift */,
 			);
@@ -213,6 +216,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */,
+				D9BA691796070006A094FB41 /* NotchPanel.swift in Sources */,
 				D826E812A44E1DEAB9FD30B1 /* SystemPeekApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

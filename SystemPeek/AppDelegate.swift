@@ -1,11 +1,29 @@
 import AppKit
 
 /// Owns the app lifecycle. Runs as an `.accessory` app (no Dock icon, no menu
-/// bar presence) and will own the notch panel + metrics sampler as those land
-/// in later commits.
+/// bar presence) and owns the notch panel.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var notchPanel: NotchPanel?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Background/agent app: no Dock tile, doesn't steal focus.
         NSApp.setActivationPolicy(.accessory)
+
+        let panel = NotchPanel()
+        panel.orderFrontRegardless()
+        notchPanel = panel
+
+        // Keep the panel anchored when displays change (resolution, plugging in
+        // an external monitor, etc.).
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersChanged),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    @objc private func screenParametersChanged() {
+        notchPanel?.reposition()
     }
 }
