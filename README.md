@@ -13,8 +13,9 @@ SystemPeek runs as a background (`accessory`) app — **no Dock icon**.
 - Runs under the **App Sandbox** with no extra entitlements (least privilege) and
   **never as root**.
 - It sits next to the camera but **does not access the camera or microphone**.
-- Hover is detected with a local tracking area only — **no system-wide input
-  monitoring**.
+- Hover is detected by reading the cursor position (`NSEvent.mouseLocation`) on a
+  timer — **no event taps, no Input Monitoring permission**, and it cannot see
+  clicks or keystrokes.
 
 ## Requirements
 
@@ -47,6 +48,7 @@ xcodebuild test -scheme SystemPeek -destination 'platform=macOS'
 
 - **Unit + integration tests** (`SystemPeekTests`) cover the metric math and a real
   sample sanity-check.
-- **End-to-end UI tests** (`SystemPeekUITests`, XCUITest) launch the app, hover the
-  notch, and assert the panel expands/collapses. The test runner controls the
-  cursor, so the **first run may prompt for Automation/Accessibility permission**.
+- **End-to-end test** (`SystemPeekUITests`) launches the real app, moves the cursor
+  onto the notch panel, and asserts it expands then collapses — observed via the
+  live window height. It **moves the system cursor**, so don't drive the
+  mouse/trackpad while it runs.
