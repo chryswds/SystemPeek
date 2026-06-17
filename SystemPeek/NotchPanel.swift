@@ -28,27 +28,27 @@ final class NotchPanel: NSPanel {
         level = .statusBar
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // No window shadow: it haloed the top edge gray. The island reads as a
+        // solid black extension of the notch instead.
+        hasShadow = false
         isMovable = false
         isMovableByWindowBackground = false
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        // Notch size drives the panel's column so it grows out of the real notch.
-        let screen = NotchPanel.notchScreen()
-        let notchWidth: CGFloat = screen.map { max(NotchPanel.notchRect(on: $0).width, 90) } ?? 200
-        let notchHeight: CGFloat = screen
+        // Menu-bar/notch height to clear at the top so content sits in the visible area.
+        let topInset: CGFloat = NotchPanel.notchScreen()
             .map { max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY) } ?? 32
 
         // Measure the content once so frames are exact.
-        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth, notchHeight: notchHeight))
+        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler, topInset: topInset))
         measure.layoutSubtreeIfNeeded()
         let fitting = measure.fittingSize
         if fitting.width > 1, fitting.height > 1 { expandedSize = fitting }
 
         // Pin the content to the top at its full size so that, as the window grows
         // from a sliver to full height, the panel is revealed top-to-bottom.
-        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth, notchHeight: notchHeight))
+        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler, topInset: topInset))
         hosting.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
         container.addSubview(hosting)
