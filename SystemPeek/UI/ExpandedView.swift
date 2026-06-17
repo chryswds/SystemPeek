@@ -20,8 +20,10 @@ struct NotchShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let tr = min(topCornerRadius, rect.width / 2)
-        let br = min(bottomCornerRadius, rect.width / 2)
+        // Clamp so the shape stays valid even at the tiny notch size during the
+        // morph (top + bottom radii must fit within the height and width).
+        let tr = min(topCornerRadius, rect.width / 2, rect.height / 2)
+        let br = min(bottomCornerRadius, rect.width / 2, max(rect.height - tr, 0))
 
         // Top edge runs the full width; the corners curve inward to meet it.
         path.move(to: CGPoint(x: rect.minX, y: rect.minY))
@@ -87,11 +89,11 @@ struct ExpandedView: View {
             )
         }
         // Clear the menu-bar height at the top so content sits below it.
+        // No background here: the morphing black NotchShape is drawn behind this
+        // (in NotchPanel) so the shape can resize independently of the metrics.
         .padding(EdgeInsets(top: topInset + 8, leading: 22, bottom: 20, trailing: 22))
         .frame(width: 340)
-        .background(
-            NotchShape().fill(Color.black)
-        )
+        .fixedSize()
         .accessibilityIdentifier("expandedPanel")
     }
 }

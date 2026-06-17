@@ -10,6 +10,7 @@ import SwiftUI
 final class NotchPanel: NSPanel {
 
     private let sampler: MetricsSampler
+    private let state = PanelState()
     private var expandedSize = NSSize(width: 300, height: 150)
     private var hoverTimer: Timer?
     private var isExpanded = false
@@ -46,17 +47,27 @@ final class NotchPanel: NSPanel {
         let fitting = measure.fittingSize
         if fitting.width > 1, fitting.height > 1 { expandedSize = fitting }
 
-        // Pin the content to the top at its full size so that, as the window grows
-        // from a sliver to full height, the panel is revealed top-to-bottom.
-        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler, topInset: topInset))
+        // The notch's footprint, used as the morph's start size.
+        let notchSize: CGSize = NotchPanel.notchScreen().map {
+            CGSize(width: max(NotchPanel.notchRect(on: $0).width, 120),
+                   height: max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY))
+        } ?? CGSize(width: 180, height: 32)
+
+        // The window stays at the fixed island size; the morph happens entirely in
+        // SwiftUI (the shape grows from the notch size, metrics fade in) so the
+        // window frame never animates — no sliding/glitching.
+        let hosting = NSHostingView(rootView: NotchContentView(
+            sampler: sampler, state: state, topInset: topInset,
+            notchSize: notchSize, islandSize: expandedSize
+        ))
         hosting.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
         container.addSubview(hosting)
         NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             hosting.topAnchor.constraint(equalTo: container.topAnchor),
-            hosting.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            hosting.widthAnchor.constraint(equalToConstant: expandedSize.width),
-            hosting.heightAnchor.constraint(equalToConstant: expandedSize.height),
+            hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
         // Dev quit affordance: right-click the revealed panel to Quit.
@@ -69,9 +80,8 @@ final class NotchPanel: NSPanel {
         hosting.menu = menu
         contentView = container
 
-        // Start hidden; the hover poll reveals it.
-        setFrame(startFrame(), display: false)
-        alphaValue = 0
+        // Fixed island-sized window, anchored to the top; starts hidden.
+        setFrame(expandedFrame(), display: false)
         startHoverTracking()
     }
 
@@ -113,28 +123,28 @@ final class NotchPanel: NSPanel {
     private func expand() {
         guard !isExpanded else { return }
         isExpanded = true
-        setFrame(startFrame(), display: false)
-        alphaValue = 0
+        // Window is already island-sized and anchored at the notch; just show it
+        // and let SwiftUI morph the shape out from the notch.
+        alphaValue = 1
+        setFrame(expandedFrame(), display: false)
         orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            animator().alphaValue = 1
-            animator().setFrame(expandedFrame(), display: true)
-        }
+        state.isExpanded = true
     }
 
     private func collapse() {
         guard isExpanded else { return }
         isExpanded = false
+        state.isExpanded = false   // SwiftUI morphs the shape back into the notch
+        // Fade the window out as it retracts so the shape's final edge never sits
+        // as a visible line/bump under the notch before hiding.
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.18
+            context.duration = 0.22
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             animator().alphaValue = 0
-            animator().setFrame(startFrame(), display: true)
         }, completionHandler: { [weak self] in
             guard let self, !self.isExpanded else { return }
             self.orderOut(nil)
+            self.alphaValue = 1   // reset for the next reveal
         })
     }
 
@@ -179,14 +189,6 @@ final class NotchPanel: NSPanel {
             width: width,
             height: screen.frame.maxY + topOverscan - panel.minY
         )
-    }
-
-    /// Hidden start/end frame: a 1pt sliver at the screen top that the reveal grows
-    /// downward from.
-    private func startFrame() -> NSRect {
-        guard let screen = NotchPanel.notchScreen() else { return frame }
-        let notch = NotchPanel.notchRect(on: screen)
-        return NSRect(x: notch.midX - expandedSize.width / 2, y: screen.frame.maxY - 1, width: expandedSize.width, height: 1)
     }
 
     /// Revealed frame: anchored to the very top of the screen so the notch column
@@ -241,4 +243,43 @@ final class NotchPanel: NSPanel {
     }
 
     private static let minimumWidthFallback: CGFloat = 180
+}
+
+/// Shared reveal state so the SwiftUI metrics can fade in/out in step with the
+/// window's morph animation.
+@MainActor
+final class PanelState: ObservableObject {
+    @Published var isExpanded = false
+}
+
+/// The panel's content, in a fixed island-sized container. The black NotchShape
+/// animates its size from the notch footprint up to the island while the metrics
+/// fade in — the whole morph happens in SwiftUI, so the window never resizes.
+private struct NotchContentView: View {
+    @ObservedObject var sampler: MetricsSampler
+    @ObservedObject var state: PanelState
+    var topInset: CGFloat
+    var notchSize: CGSize
+    var islandSize: CGSize
+
+    var body: some View {
+        let w = state.isExpanded ? islandSize.width : notchSize.width
+        let h = state.isExpanded ? islandSize.height : notchSize.height
+        ZStack(alignment: .top) {
+            NotchShape()
+                .fill(Color.black)
+                .frame(width: w, height: h)
+                .animation(.spring(response: 0.34, dampingFraction: 0.86), value: state.isExpanded)
+
+            // Metrics are clipped to the (morphing) notch outline so they can never
+            // show outside it, and they hide fast — so when the notch retracts the
+            // items are gone immediately, not lingering for a split second.
+            ExpandedView(sampler: sampler, topInset: topInset)
+                .frame(width: w, height: h, alignment: .top)
+                .clipShape(NotchShape())
+                .opacity(state.isExpanded ? 1 : 0)
+                .animation(.easeOut(duration: 0.08), value: state.isExpanded)
+        }
+        .frame(width: islandSize.width, height: islandSize.height, alignment: .top)
+    }
 }
