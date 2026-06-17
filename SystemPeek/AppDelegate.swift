@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchPanel: NotchPanel?
     private let sampler = MetricsSampler()
     private var settingsWindow: NSWindow?
+    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Background/agent app: no Dock tile, doesn't steal focus.
@@ -18,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard NSClassFromString("XCTestCase") == nil else { return }
 
         sampler.start()
+        setupStatusItem()
 
         // The panel manages its own visibility: hidden until the notch is hovered.
         let panel = NotchPanel(sampler: sampler, onOpenSettings: { [weak self] in
@@ -51,6 +53,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func screenParametersChanged() {
         notchPanel?.reposition()
     }
+
+    /// A menu-bar icon (next to wifi/battery) with Settings and Quit, since the
+    /// app has no Dock icon.
+    private func setupStatusItem() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = item.button {
+            button.image = NSImage(systemSymbolName: "speedometer", accessibilityDescription: "SystemPeek")
+            button.image?.isTemplate = true
+            button.toolTip = "SystemPeek"
+        }
+
+        let menu = NSMenu()
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit SystemPeek",
+                     action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        item.menu = menu
+        statusItem = item
+    }
+
+    @objc private func openSettingsFromMenu() { showSettings() }
 
     private func showSettings() {
         if settingsWindow == nil {
