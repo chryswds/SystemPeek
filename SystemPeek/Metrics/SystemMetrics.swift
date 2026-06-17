@@ -19,6 +19,8 @@ struct SystemMetrics: Equatable {
     var topCPUPercent: Double = 0
     var topMemoryName: String = ""
     var topMemoryBytes: UInt64 = 0
+    /// Rolling CPU% history (oldest first), for the sparkline.
+    var cpuHistory: [Double] = []
 
     static let zero = SystemMetrics(
         cpuPercent: 0,

@@ -1,14 +1,11 @@
 import SwiftUI
 
 extension Color {
-    /// Shared usage colour ramp: green under 60%, yellow under 85%, red above.
-    static func usage(_ percent: Double) -> Color {
-        switch min(max(percent, 0), 100) {
-        case ..<60: return .green
-        case ..<85: return .yellow
-        default: return .red
-        }
-    }
+    /// The single accent blue used across the whole UI.
+    static let brand = Color(red: 0.24, green: 0.55, blue: 0.97)
+
+    /// Kept for call sites; the UI now uses one consistent accent rather than a ramp.
+    static func usage(_ percent: Double) -> Color { brand }
 }
 
 /// The notch shape: a rounded rectangle attached to the top edge of the screen,
@@ -91,7 +88,7 @@ struct ExpandedView: View {
                     if showCPU {
                         StatCell(icon: "cpu", label: "CPU",
                                  value: percentString(m.cpuPercent), percent: m.cpuPercent,
-                                 identifier: "cpu")
+                                 identifier: "cpu", history: m.cpuHistory)
                     }
                     if showMemory {
                         StatCell(icon: "memorychip", label: "Memory",
@@ -141,7 +138,7 @@ struct ExpandedView: View {
                 HighlightItem(icon: "memorychip", title: "Top Mem",
                               name: m.topMemoryName.isEmpty ? "—" : m.topMemoryName,
                               value: m.topMemoryName.isEmpty ? "" : ByteFormat.string(m.topMemoryBytes),
-                              valueColor: Color(red: 0.46, green: 0.78, blue: 1.0))
+                              valueColor: .brand)
             }
         }
         // Clear the menu-bar height at the top so content sits below it.
@@ -222,6 +219,8 @@ private struct StatCell: View {
     var tint: Color? = nil
     /// Shown in place of `value` while the cursor hovers this cell (e.g. GB used/total).
     var hoverDetail: String? = nil
+    /// When provided, the cell shows a sparkline of this history instead of a bar.
+    var history: [Double]? = nil
 
     @State private var hovering = false
     private var color: Color { tint ?? .usage(percent) }
@@ -241,8 +240,12 @@ private struct StatCell: View {
                     .foregroundStyle(.white.opacity(0.7))
                     .accessibilityIdentifier("\(identifier).value")
             }
-            // While hovering, the actual amount is shown inside the (taller) bar.
-            UsageBar(percent: percent, tint: color, overlay: hovering ? hoverDetail : nil)
+            if let history, history.count >= 2 {
+                Sparkline(values: history, tint: .brand)
+            } else {
+                // While hovering, the actual amount is shown inside the (taller) bar.
+                UsageBar(percent: percent, tint: color, overlay: hovering ? hoverDetail : nil)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(.white)
@@ -283,6 +286,72 @@ private struct NetworkRow: View {
 }
 
 /// A horizontal bar filled proportionally to `percent` (0...100), colour-coded.
+/// A live, smoothed line graph with a soft gradient fill and a current-value dot.
+/// Auto-scales to the visible range (with headroom) so low-but-active values still
+/// read well.
+private struct Sparkline: View {
+    let values: [Double]
+    var tint: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            let pts = points(in: geo.size)
+            ZStack {
+                if pts.count >= 2 {
+                    smoothPath(pts, fillTo: geo.size.height)
+                        .fill(LinearGradient(colors: [tint.opacity(0.32), tint.opacity(0.0)],
+                                             startPoint: .top, endPoint: .bottom))
+                    smoothPath(pts, fillTo: nil)
+                        .stroke(tint, style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+                    Circle()
+                        .fill(tint)
+                        .frame(width: 4.5, height: 4.5)
+                        .shadow(color: tint.opacity(0.7), radius: 2)
+                        .position(pts.last!)
+                }
+            }
+        }
+        .frame(height: 18)
+        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+    }
+
+    private func points(in size: CGSize) -> [CGPoint] {
+        guard values.count > 1 else { return [] }
+        let inset: CGFloat = 2.5
+        let usable = size.height - inset * 2
+        let top = min(max(values.max() ?? 0, 8) * 1.25, 100)   // headroom; floor so it isn't flat
+        return values.indices.map { i in
+            let v = min(max(values[i], 0), top) / top
+            let x = size.width * CGFloat(i) / CGFloat(values.count - 1)
+            return CGPoint(x: x, y: inset + usable - CGFloat(v) * usable)
+        }
+    }
+
+    /// A Catmull-Rom–smoothed path through `pts`; if `fillTo` is set, it's closed
+    /// down to that y for the gradient fill.
+    private func smoothPath(_ pts: [CGPoint], fillTo bottom: CGFloat?) -> Path {
+        var path = Path()
+        guard let first = pts.first else { return path }
+        if let bottom {
+            path.move(to: CGPoint(x: first.x, y: bottom))
+            path.addLine(to: first)
+        } else {
+            path.move(to: first)
+        }
+        for i in 1..<pts.count {
+            let p0 = pts[max(i - 2, 0)], p1 = pts[i - 1], p2 = pts[i], p3 = pts[min(i + 1, pts.count - 1)]
+            let c1 = CGPoint(x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6)
+            let c2 = CGPoint(x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6)
+            path.addCurve(to: p2, control1: c1, control2: c2)
+        }
+        if let bottom, let last = pts.last {
+            path.addLine(to: CGPoint(x: last.x, y: bottom))
+            path.closeSubpath()
+        }
+        return path
+    }
+}
+
 private struct UsageBar: View {
     let percent: Double
     var tint: Color

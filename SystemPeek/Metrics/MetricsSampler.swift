@@ -13,6 +13,8 @@ final class MetricsSampler: ObservableObject {
     private var previousNetworkTime: Date?
     private var previousProcessCPU: [pid_t: Double] = [:]
     private var previousProcessTime: Date?
+    private var cpuHistoryBuffer: [Double] = []
+    private let historyLength = 60
 
     init() {
         // Prime the CPU, network, and per-process baselines.
@@ -103,6 +105,12 @@ final class MetricsSampler: ObservableObject {
             previousProcessCPU = Dictionary(processes.map { ($0.pid, $0.cpuSeconds) }, uniquingKeysWith: { a, _ in a })
             previousProcessTime = now
         }
+
+        cpuHistoryBuffer.append(next.cpuPercent)
+        if cpuHistoryBuffer.count > historyLength {
+            cpuHistoryBuffer.removeFirst(cpuHistoryBuffer.count - historyLength)
+        }
+        next.cpuHistory = cpuHistoryBuffer
 
         metrics = next
     }
