@@ -11,12 +11,17 @@ final class MetricsSampler: ObservableObject {
     private var previousTicks: CPUTicks?
     private var previousNetwork: NetworkSample?
     private var previousNetworkTime: Date?
+    private var previousProcessCPU: [pid_t: Double] = [:]
+    private var previousProcessTime: Date?
 
     init() {
-        // Prime the CPU and network baselines so the first interval is meaningful.
+        // Prime the CPU, network, and per-process baselines.
         previousTicks = CPUUsage.currentTicks()
         previousNetwork = NetworkUsage.currentSample()
         previousNetworkTime = Date()
+        let processes = ProcessUsage.snapshot()
+        previousProcessCPU = Dictionary(processes.map { ($0.pid, $0.cpuSeconds) }, uniquingKeysWith: { a, _ in a })
+        previousProcessTime = Date()
         sample()
     }
 
@@ -80,6 +85,23 @@ final class MetricsSampler: ObservableObject {
         if let swap = SwapUsage.currentSample() {
             next.swapUsedBytes = swap.usedBytes
             next.swapTotalBytes = swap.totalBytes
+        }
+
+        let processes = ProcessUsage.snapshot()
+        if !processes.isEmpty {
+            let now = Date()
+            if let previousTime = previousProcessTime,
+               let topCPU = ProcessUsage.topByCPU(previous: previousProcessCPU, current: processes,
+                                                   interval: now.timeIntervalSince(previousTime)) {
+                next.topCPUName = topCPU.name
+                next.topCPUPercent = topCPU.percent
+            }
+            if let topMemory = ProcessUsage.topByMemory(processes) {
+                next.topMemoryName = topMemory.name
+                next.topMemoryBytes = topMemory.bytes
+            }
+            previousProcessCPU = Dictionary(processes.map { ($0.pid, $0.cpuSeconds) }, uniquingKeysWith: { a, _ in a })
+            previousProcessTime = now
         }
 
         metrics = next

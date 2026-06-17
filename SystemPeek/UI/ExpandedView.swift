@@ -69,6 +69,7 @@ struct ExpandedView: View {
         ByteFormat.string(Int64(max(bytesPerSecond, 0))) + "/s"
     }
 
+
     var body: some View {
         VStack(spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
@@ -90,10 +91,20 @@ struct ExpandedView: View {
             NetworkRow(down: rate(m.networkDownBytesPerSec),
                        up: rate(m.networkUpBytesPerSec))
 
-            LoadSwapRow(
-                load: String(format: "%.2f  %.2f  %.2f", m.loadOne, m.loadFive, m.loadFifteen),
-                swap: ByteFormat.string(m.swapUsedBytes)
-            )
+            HStack(spacing: 24) {
+                InfoItem(label: "Load",
+                         value: String(format: "%.2f  %.2f  %.2f", m.loadOne, m.loadFive, m.loadFifteen))
+                InfoItem(label: "Swap", value: ByteFormat.string(m.swapUsedBytes))
+            }
+
+            HighlightItem(icon: "cpu", title: "Top CPU",
+                          name: m.topCPUName.isEmpty ? "—" : m.topCPUName,
+                          value: m.topCPUName.isEmpty ? "" : String(format: "%.0f%%", m.topCPUPercent),
+                          valueColor: .usage(m.topCPUPercent))
+            HighlightItem(icon: "memorychip", title: "Top Mem",
+                          name: m.topMemoryName.isEmpty ? "—" : m.topMemoryName,
+                          value: m.topMemoryName.isEmpty ? "" : ByteFormat.string(m.topMemoryBytes),
+                          valueColor: Color(red: 0.46, green: 0.78, blue: 1.0))
         }
         // Clear the menu-bar height at the top so content sits below it.
         // No background here: the morphing black NotchShape is drawn behind this
@@ -105,34 +116,61 @@ struct ExpandedView: View {
     }
 }
 
-/// Full-width row pairing two "hidden" metrics: CPU load average (1/5/15 min) on
-/// the left and swap used on the right.
-private struct LoadSwapRow: View {
-    let load: String
-    let swap: String
+/// A highlighted full-width chip for the top-process rows: icon + title, the
+/// process name, and a bold colour-coded value, on a subtle rounded background.
+private struct HighlightItem: View {
+    let icon: String
+    let title: String
+    let name: String
+    let value: String
+    var valueColor: Color = .white
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.7))
+                .frame(width: 16)
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
+            Spacer(minLength: 8)
+            Text(name)
+                .font(.system(size: 12, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Text(value)
+                .font(.system(size: 12, weight: .bold).monospacedDigit())
+                .foregroundStyle(valueColor)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+        )
+    }
+}
+
+/// A compact label/value pair that fills half the width in the info grid.
+private struct InfoItem: View {
+    let label: String
+    let value: String
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "speedometer")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
-                .frame(width: 18)
-            Text("Load")
+            Text(label)
                 .font(.system(size: 12, weight: .semibold))
-            Text(load)
+            Spacer(minLength: 8)
+            Text(value)
                 .font(.system(size: 12, weight: .regular).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.75))
-            Spacer(minLength: 12)
-            Text("Swap")
-                .font(.system(size: 12, weight: .semibold))
-            Text(swap)
-                .font(.system(size: 12, weight: .regular).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
         .frame(maxWidth: .infinity)
         .foregroundStyle(.white)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("loadswap.row")
     }
 }
 

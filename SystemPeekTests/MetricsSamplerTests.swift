@@ -27,6 +27,10 @@ final class MetricsSamplerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(m.loadFive, 0)
         XCTAssertGreaterThanOrEqual(m.loadFifteen, 0)
         XCTAssertLessThanOrEqual(m.swapUsedBytes, max(m.swapTotalBytes, m.swapUsedBytes))
+
+        // Sandbox is off, so process enumeration works: a top-memory process exists.
+        XCTAssertGreaterThan(m.topMemoryBytes, 0)
+        XCTAssertFalse(m.topMemoryName.isEmpty)
     }
 
     func testRepeatedSamplingStaysConsistent() {

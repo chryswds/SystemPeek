@@ -11,6 +11,7 @@
 		0BBE0064BA37AEB1F01B1C7E /* DiskUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C4999BD6BCAF6FC7AFA04B8 /* DiskUsage.swift */; };
 		0D0B1EF69E1C054F016645A3 /* SwapUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522BD500C42D48FBCD5B45BC /* SwapUsage.swift */; };
 		15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A95DCE1F6073AC7A612849 /* AppDelegate.swift */; };
+		16D9007FC81C14EDB057C830 /* ProcessUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810CFB358E44A39C2B2944EF /* ProcessUsageTests.swift */; };
 		395F9B5684155B3BFB6FCC91 /* MetricsSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F57A1DD16853CE63CDFE0F0C /* MetricsSamplerTests.swift */; };
 		48E3F157DE944F9E2D51C57B /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */; };
 		6AB6B7E1FF7CB10993574DB9 /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405771037AE4593B034920F8 /* CPUUsageTests.swift */; };
@@ -25,6 +26,7 @@
 		E6C3D2F97B203D413FBCCE43 /* MetricsSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EDFC797BA1F8F155BAB4D0D /* MetricsSampler.swift */; };
 		E90C32E1DC04307642E30EC6 /* HoverExpandUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B26D51C3BABC5852663ADA4 /* HoverExpandUITests.swift */; };
 		EBE09C939FD8395245D29A3F /* NetworkUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6278E4966D9E7A8C85FC1BF9 /* NetworkUsageTests.swift */; };
+		F68CEB7CF7482E4C5B22C0DD /* ProcessUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028B807AD80FC0A618AD0E47 /* ProcessUsage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +47,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		028B807AD80FC0A618AD0E47 /* ProcessUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessUsage.swift; sourceTree = "<group>"; };
 		02A95DCE1F6073AC7A612849 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsage.swift; sourceTree = "<group>"; };
 		0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetrics.swift; sourceTree = "<group>"; };
@@ -58,6 +61,7 @@
 		6278E4966D9E7A8C85FC1BF9 /* NetworkUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUsageTests.swift; sourceTree = "<group>"; };
 		6B26D51C3BABC5852663ADA4 /* HoverExpandUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverExpandUITests.swift; sourceTree = "<group>"; };
 		7BEBA7DE395E6C4B114235C0 /* SystemPeekUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SystemPeekUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		810CFB358E44A39C2B2944EF /* ProcessUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessUsageTests.swift; sourceTree = "<group>"; };
 		8B790F24495BD5A362AAED1C /* MemoryUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageTests.swift; sourceTree = "<group>"; };
 		9A89D24F1834FE566F1694DB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SystemPeek.entitlements; sourceTree = "<group>"; };
@@ -103,6 +107,7 @@
 				8B790F24495BD5A362AAED1C /* MemoryUsageTests.swift */,
 				F57A1DD16853CE63CDFE0F0C /* MetricsSamplerTests.swift */,
 				6278E4966D9E7A8C85FC1BF9 /* NetworkUsageTests.swift */,
+				810CFB358E44A39C2B2944EF /* ProcessUsageTests.swift */,
 			);
 			path = SystemPeekTests;
 			sourceTree = "<group>";
@@ -116,6 +121,7 @@
 				07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */,
 				4EDFC797BA1F8F155BAB4D0D /* MetricsSampler.swift */,
 				F334A78BD7124873724E6FBC /* NetworkUsage.swift */,
+				028B807AD80FC0A618AD0E47 /* ProcessUsage.swift */,
 				522BD500C42D48FBCD5B45BC /* SwapUsage.swift */,
 				0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */,
 			);
@@ -267,6 +273,7 @@
 				DD515E8B319927A2F7440CA2 /* MemoryUsageTests.swift in Sources */,
 				395F9B5684155B3BFB6FCC91 /* MetricsSamplerTests.swift in Sources */,
 				EBE09C939FD8395245D29A3F /* NetworkUsageTests.swift in Sources */,
+				16D9007FC81C14EDB057C830 /* ProcessUsageTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -283,6 +290,7 @@
 				E6C3D2F97B203D413FBCCE43 /* MetricsSampler.swift in Sources */,
 				6E3F6BEC74A349A1601B1A07 /* NetworkUsage.swift in Sources */,
 				D9BA691796070006A094FB41 /* NotchPanel.swift in Sources */,
+				F68CEB7CF7482E4C5B22C0DD /* ProcessUsage.swift in Sources */,
 				0D0B1EF69E1C054F016645A3 /* SwapUsage.swift in Sources */,
 				BACCB721CCA4EC7F840F53F5 /* SystemMetrics.swift in Sources */,
 				D826E812A44E1DEAB9FD30B1 /* SystemPeekApp.swift in Sources */,

@@ -9,10 +9,12 @@ SystemPeek runs as a background (`accessory`) app — **no Dock icon**.
 
 ## Privacy & security
 
-- Reads only **aggregate, read-only** system metrics (CPU load, memory stats, disk
-  capacity) via Apple's Darwin APIs. No network access.
-- Runs under the **App Sandbox** with no extra entitlements (least privilege) and
-  **never as root**.
+- Reads only **read-only** system metrics (CPU, memory, disk, network counters,
+  load, swap, and per-process CPU/memory) via Apple's Darwin/IOKit APIs. No
+  network access, **never runs as root**.
+- The **App Sandbox is off**: showing the top process by CPU/memory requires
+  enumerating other processes, which the sandbox blocks. This trades some
+  isolation for the feature; the app is still read-only and unprivileged.
 - It sits next to the camera but **does not access the camera or microphone**.
 - Hover is detected by reading the cursor position (`NSEvent.mouseLocation`) on a
   timer — **no event taps, no Input Monitoring permission**, and it cannot see

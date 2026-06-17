@@ -15,6 +15,10 @@ struct SystemMetrics: Equatable {
     var loadFifteen: Double = 0
     var swapUsedBytes: UInt64 = 0
     var swapTotalBytes: UInt64 = 0
+    var topCPUName: String = ""
+    var topCPUPercent: Double = 0
+    var topMemoryName: String = ""
+    var topMemoryBytes: UInt64 = 0
 
     static let zero = SystemMetrics(
         cpuPercent: 0,
