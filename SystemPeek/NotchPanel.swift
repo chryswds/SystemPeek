@@ -60,6 +60,17 @@ final class NotchPanel: NSPanel {
             hosting.topAnchor.constraint(equalTo: hover.topAnchor),
             hosting.bottomAnchor.constraint(equalTo: hover.bottomAnchor),
         ])
+
+        // Dev quit affordance: as an .accessory app there's no Dock/menu, so a
+        // right-click on the panel offers Quit.
+        let menu = NSMenu()
+        menu.addItem(
+            withTitle: "Quit SystemPeek",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        hover.menu = menu
+
         contentView = hover
 
         setFrame(collapsedFrame(), display: true)
@@ -172,25 +183,10 @@ private struct NotchContentView: View {
                 ExpandedView(sampler: sampler)
                     .transition(.opacity)
             } else {
-                CollapsedStrip()
+                CollapsedView(sampler: sampler)
                     .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.15), value: state.isExpanded)
-    }
-}
-
-/// Minimal collapsed look: a black strip that visually extends the notch.
-/// (Refined into a dedicated CollapsedView in the next commit.)
-private struct CollapsedStrip: View {
-    var body: some View {
-        UnevenRoundedRectangle(
-            bottomLeadingRadius: 10,
-            bottomTrailingRadius: 10,
-            style: .continuous
-        )
-        .fill(Color.black)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityIdentifier("collapsedStrip")
     }
 }

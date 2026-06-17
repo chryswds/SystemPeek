@@ -1,5 +1,16 @@
 import SwiftUI
 
+extension Color {
+    /// Shared usage colour ramp: green under 60%, yellow under 85%, red above.
+    static func usage(_ percent: Double) -> Color {
+        switch min(max(percent, 0), 100) {
+        case ..<60: return .green
+        case ..<85: return .yellow
+        default: return .red
+        }
+    }
+}
+
 /// The expanded panel contents: live CPU, memory, and disk usage. Observes the
 /// shared `MetricsSampler` so rows update as new samples arrive.
 struct ExpandedView: View {
@@ -70,7 +81,7 @@ private struct UsageBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.15))
                 Capsule()
-                    .fill(color)
+                    .fill(Color.usage(clamped))
                     .frame(width: geo.size.width * CGFloat(clamped / 100))
             }
         }
@@ -78,12 +89,4 @@ private struct UsageBar: View {
     }
 
     private var clamped: Double { min(max(percent, 0), 100) }
-
-    private var color: Color {
-        switch clamped {
-        case ..<60: return .green
-        case ..<85: return .yellow
-        default: return .red
-        }
-    }
 }
