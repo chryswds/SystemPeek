@@ -13,6 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Background/agent app: no Dock tile, doesn't steal focus.
         NSApp.setActivationPolicy(.accessory)
 
+        // When this app is the unit-test host, don't spin up the live UI (panel,
+        // settings window) — those tests drive the metrics logic directly.
+        guard NSClassFromString("XCTestCase") == nil else { return }
+
         sampler.start()
 
         // The panel manages its own visibility: hidden until the notch is hovered.
