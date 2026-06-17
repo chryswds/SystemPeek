@@ -23,6 +23,8 @@ struct SettingsView: View {
     @AppStorage(MetricKey.topCPU) private var showTopCPU = true
     @AppStorage(MetricKey.topMemory) private var showTopMemory = true
 
+    @StateObject private var loginItem = LoginItem()
+
     private var versionText: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -61,7 +63,15 @@ struct SettingsView: View {
                 Toggle("Top process by CPU", isOn: $showTopCPU)
                 Toggle("Top process by memory", isOn: $showTopMemory)
             }
+
+            Section("General") {
+                Toggle("Launch at login", isOn: Binding(
+                    get: { loginItem.isEnabled },
+                    set: { loginItem.setEnabled($0) }
+                ))
+            }
         }
+        .onAppear { loginItem.refresh() }
         .formStyle(.grouped)
         .frame(width: 340, height: 380)
     }
