@@ -11,45 +11,51 @@ extension Color {
     }
 }
 
-/// Outline that makes the panel look like the notch expanding: a flat top the
-/// width of the notch (flush with the menu bar), concave "shoulders" flaring out
-/// to the card's full width, then straight sides into rounded bottom corners.
+/// Outline that makes the panel look like the notch expanding. The top is a
+/// straight column the exact width (and height) of the notch — drawn over the
+/// menu bar so it merges with the real notch — then concave "shoulders" flare it
+/// out to the card's full width, with rounded convex bottom corners.
 struct NotchExpandShape: Shape {
     var notchWidth: CGFloat
-    var shoulder: CGFloat = 16      // depth of the concave flare
-    var bottomRadius: CGFloat = 22
+    var notchHeight: CGFloat        // height of the menu-bar/notch column at the top
+    var shoulder: CGFloat = 22      // vertical depth of the concave flare
+    var bottomRadius: CGFloat = 24
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let topInset = max((rect.width - notchWidth) / 2, shoulder)
-        let leftTopX = rect.minX + topInset
-        let rightTopX = rect.maxX - topInset
+        let inset = max((rect.width - notchWidth) / 2, shoulder)
+        let xL = rect.minX + inset          // left edge of the notch column
+        let xR = rect.maxX - inset          // right edge of the notch column
+        let neck = rect.minY + notchHeight  // where the flare begins
 
-        // Flat top starts at the left end (under the notch).
-        path.move(to: CGPoint(x: leftTopX, y: rect.minY))
-        // Concave shoulder flaring out to the left edge.
+        // Flat top across the notch width.
+        path.move(to: CGPoint(x: xL, y: rect.minY))
+        path.addLine(to: CGPoint(x: xR, y: rect.minY))
+        // Right notch side straight down to the neck.
+        path.addLine(to: CGPoint(x: xR, y: neck))
+        // Concave shoulder flaring out to the right edge.
         path.addQuadCurve(
-            to: CGPoint(x: rect.minX, y: rect.minY + shoulder),
-            control: CGPoint(x: rect.minX, y: rect.minY)
+            to: CGPoint(x: rect.maxX, y: neck + shoulder),
+            control: CGPoint(x: rect.maxX, y: neck)
         )
-        // Left side down to the bottom-left corner.
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - bottomRadius))
+        // Right body side down to the rounded bottom-right.
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - bottomRadius))
         path.addQuadCurve(
-            to: CGPoint(x: rect.minX + bottomRadius, y: rect.maxY),
-            control: CGPoint(x: rect.minX, y: rect.maxY)
-        )
-        // Bottom edge.
-        path.addLine(to: CGPoint(x: rect.maxX - bottomRadius, y: rect.maxY))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX, y: rect.maxY - bottomRadius),
+            to: CGPoint(x: rect.maxX - bottomRadius, y: rect.maxY),
             control: CGPoint(x: rect.maxX, y: rect.maxY)
         )
-        // Right side up.
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + shoulder))
-        // Concave shoulder flaring back in to the flat top.
+        // Bottom edge.
+        path.addLine(to: CGPoint(x: rect.minX + bottomRadius, y: rect.maxY))
         path.addQuadCurve(
-            to: CGPoint(x: rightTopX, y: rect.minY),
-            control: CGPoint(x: rect.maxX, y: rect.minY)
+            to: CGPoint(x: rect.minX, y: rect.maxY - bottomRadius),
+            control: CGPoint(x: rect.minX, y: rect.maxY)
+        )
+        // Left body side up to the shoulder.
+        path.addLine(to: CGPoint(x: rect.minX, y: neck + shoulder))
+        // Concave shoulder flaring back in to the notch column.
+        path.addQuadCurve(
+            to: CGPoint(x: xL, y: neck),
+            control: CGPoint(x: rect.minX, y: neck)
         )
         path.closeSubpath()
         return path
@@ -61,6 +67,7 @@ struct NotchExpandShape: Shape {
 struct ExpandedView: View {
     @ObservedObject var sampler: MetricsSampler
     var notchWidth: CGFloat = 200
+    var notchHeight: CGFloat = 32
 
     private var m: SystemMetrics { sampler.metrics }
 
@@ -88,15 +95,12 @@ struct ExpandedView: View {
                 identifier: "disk"
             )
         }
-        .padding(EdgeInsets(top: 20, leading: 18, bottom: 18, trailing: 18))
+        // Content sits below the notch column + shoulder so it lands in the card body.
+        .padding(EdgeInsets(top: notchHeight + 26, leading: 18, bottom: 20, trailing: 18))
         .frame(width: 320)
         .background(
-            NotchExpandShape(notchWidth: notchWidth)
+            NotchExpandShape(notchWidth: notchWidth, notchHeight: notchHeight)
                 .fill(Color.black)
-                .overlay(
-                    NotchExpandShape(notchWidth: notchWidth)
-                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
-                )
         )
         .accessibilityIdentifier("expandedPanel")
     }

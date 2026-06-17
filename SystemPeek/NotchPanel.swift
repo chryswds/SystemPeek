@@ -34,19 +34,21 @@ final class NotchPanel: NSPanel {
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        // Notch width drives the panel's flat-top width so it flares from the notch.
-        let notchWidth: CGFloat = NotchPanel.notchScreen()
-            .map { max(NotchPanel.notchRect(on: $0).width, 90) } ?? 200
+        // Notch size drives the panel's column so it grows out of the real notch.
+        let screen = NotchPanel.notchScreen()
+        let notchWidth: CGFloat = screen.map { max(NotchPanel.notchRect(on: $0).width, 90) } ?? 200
+        let notchHeight: CGFloat = screen
+            .map { max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY) } ?? 32
 
         // Measure the content once so frames are exact.
-        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth))
+        let measure = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth, notchHeight: notchHeight))
         measure.layoutSubtreeIfNeeded()
         let fitting = measure.fittingSize
         if fitting.width > 1, fitting.height > 1 { expandedSize = fitting }
 
         // Pin the content to the top at its full size so that, as the window grows
         // from a sliver to full height, the panel is revealed top-to-bottom.
-        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth))
+        let hosting = NSHostingView(rootView: ExpandedView(sampler: sampler, notchWidth: notchWidth, notchHeight: notchHeight))
         hosting.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
         container.addSubview(hosting)
@@ -138,12 +140,6 @@ final class NotchPanel: NSPanel {
 
     // MARK: - Frames
 
-    /// Y of the panel's top edge: just below the notch (or the menu bar on
-    /// notch-less Macs).
-    private func topAnchorY(on screen: NSScreen) -> CGFloat {
-        screen.frame.maxY - topInset(on: screen)
-    }
-
     private func topInset(on screen: NSScreen) -> CGFloat {
         max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY)
     }
@@ -185,22 +181,22 @@ final class NotchPanel: NSPanel {
         )
     }
 
-    /// Hidden start/end frame: a 1pt sliver under the notch that the reveal grows
+    /// Hidden start/end frame: a 1pt sliver at the screen top that the reveal grows
     /// downward from.
     private func startFrame() -> NSRect {
         guard let screen = NotchPanel.notchScreen() else { return frame }
         let notch = NotchPanel.notchRect(on: screen)
-        let top = topAnchorY(on: screen)
-        return NSRect(x: notch.midX - expandedSize.width / 2, y: top - 1, width: expandedSize.width, height: 1)
+        return NSRect(x: notch.midX - expandedSize.width / 2, y: screen.frame.maxY - 1, width: expandedSize.width, height: 1)
     }
 
+    /// Revealed frame: anchored to the very top of the screen so the notch column
+    /// overlays the menu bar and merges with the real notch.
     private func expandedFrame() -> NSRect {
         guard let screen = NotchPanel.notchScreen() else { return frame }
         let notch = NotchPanel.notchRect(on: screen)
-        let top = topAnchorY(on: screen)
         return NSRect(
             x: notch.midX - expandedSize.width / 2,
-            y: top - expandedSize.height,
+            y: screen.frame.maxY - expandedSize.height,
             width: expandedSize.width,
             height: expandedSize.height
         )
