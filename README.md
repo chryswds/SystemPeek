@@ -1,24 +1,52 @@
 # SystemPeek
 
-A macOS notch widget that shows live system telemetry. It stays **completely
-hidden** until you **hover the notch**, then a panel **drops down** with current
-**CPU**, **memory**, and **disk** usage (with icons), refreshing about once a
-second. Move the cursor away and it hides again. Inspired by NotchNook / Boring Notch.
+A macOS notch widget that surfaces live system telemetry. It stays **completely
+hidden** until you **hover the notch** — then the notch **morphs open** into an
+island showing your system at a glance, and retracts when you move away.
+Inspired by NotchNook / Boring Notch.
 
-SystemPeek runs as a background (`accessory`) app — **no Dock icon**.
+SystemPeek runs as a background (`accessory`) app: no Dock icon, just a small
+wave glyph in the menu bar for settings and quit.
+
+## Features
+
+- **Hover-to-reveal** — nothing on screen until your cursor reaches the notch;
+  the panel then springs out of the notch as a Dynamic-Island-style morph.
+- **Live metrics**, refreshed ~once a second:
+  - **CPU**, **Memory**, **Disk** usage (percent + bar)
+  - **Network** throughput (↓ download / ↑ upload)
+  - **Load average** (1 / 5 / 15 min) and **Swap** used
+  - **Top process by CPU** and **by memory** (highlighted)
+- **Configurable** — a settings window lets you toggle which metrics appear; the
+  island resizes to fit your selection.
+- **Menu-bar control** — a wave icon with **Settings…** and **Quit**.
+- **Launch at login** — optional, via a toggle in settings.
+
+## How it works
+
+- The panel is a borderless, non-activating `NSPanel` anchored to the top of the
+  screen so its shape merges with the real notch.
+- Hover is detected by **polling the cursor position** (`NSEvent.mouseLocation`)
+  on a timer — no event taps, no global monitors.
+- The reveal is a pure-SwiftUI morph: a `NotchShape` grows from the notch's exact
+  footprint to the island while the metrics fade in (the window itself never
+  animates, so there's no sliding/glitching).
+- Metrics come from Darwin / IOKit:
+  `host_statistics` (CPU/memory), volume capacity (disk), `getifaddrs`
+  (network), `getloadavg`, `sysctl vm.swapusage`, and `proc_listpids` +
+  `proc_pid_rusage` (top processes).
 
 ## Privacy & security
 
-- Reads only **read-only** system metrics (CPU, memory, disk, network counters,
-  load, swap, and per-process CPU/memory) via Apple's Darwin/IOKit APIs. No
-  network access, **never runs as root**.
-- The **App Sandbox is off**: showing the top process by CPU/memory requires
-  enumerating other processes, which the sandbox blocks. This trades some
-  isolation for the feature; the app is still read-only and unprivileged.
-- It sits next to the camera but **does not access the camera or microphone**.
-- Hover is detected by reading the cursor position (`NSEvent.mouseLocation`) on a
-  timer — **no event taps, no Input Monitoring permission**, and it cannot see
-  clicks or keystrokes.
+- Reads only **read-only** system metrics. **No network access. Never runs as
+  root.**
+- Sits next to the camera but **does not access the camera or microphone**.
+- Hover uses only the **cursor position** — it cannot see clicks or keystrokes,
+  and needs no Accessibility/Input-Monitoring permission.
+- **The App Sandbox is off.** Showing the top process by CPU/memory requires
+  enumerating other processes, which the sandbox blocks (`proc_listpids` →
+  `EPERM`). This trades some isolation for that feature; the app remains
+  read-only and unprivileged.
 
 ## Requirements
 
@@ -34,24 +62,43 @@ xcodegen generate          # regenerate SystemPeek.xcodeproj from project.yml
 open SystemPeek.xcodeproj  # then press ⌘R
 ```
 
-or from the command line:
+…or from the command line:
 
 ```sh
-xcodebuild -scheme SystemPeek -destination 'platform=macOS' build
+xcodebuild -scheme SystemPeek -configuration Release -destination 'platform=macOS' build
 ```
 
 The committed `SystemPeek.xcodeproj` lets the repo build without XcodeGen; rerun
 `xcodegen generate` only after editing `project.yml`.
 
-## Test
+### Using it
+
+Launch the app — nothing appears (it's a background app). **Hover your notch** to
+reveal the island. Open **Settings…** or **Quit** from the wave icon in the menu
+bar.
+
+## Tests
 
 ```sh
 xcodebuild test -scheme SystemPeek -destination 'platform=macOS'
 ```
 
-- **Unit + integration tests** (`SystemPeekTests`) cover the metric math and a real
-  sample sanity-check.
-- **End-to-end test** (`SystemPeekUITests`) launches the real app, moves the cursor
-  onto the notch panel, and asserts it expands then collapses — observed via the
-  live window height. It **moves the system cursor**, so don't drive the
-  mouse/trackpad while it runs.
+- **Unit + integration** (`SystemPeekTests`) — the metric math (CPU/memory/disk/
+  network/swap/top-process leaders) plus real-sample sanity checks.
+- **End-to-end** (`SystemPeekUITests`) — launches the real app, moves the cursor
+  onto the notch, and asserts the panel reveals then hides (observed via the live
+  window list). It **moves the system cursor**, so don't drive the mouse/trackpad
+  while it runs.
+
+## Project layout
+
+```
+SystemPeek/
+  Metrics/        # CPU, Memory, Disk, Network, Load, Swap, ProcessUsage + sampler
+  UI/             # ExpandedView (island), NotchShape, SettingsView
+  NotchPanel.swift  # the borderless panel, hover polling, and morph
+  AppDelegate.swift # menu-bar item, settings window, lifecycle
+SystemPeekTests/    # unit + integration
+SystemPeekUITests/  # end-to-end
+project.yml         # XcodeGen project definition
+```
