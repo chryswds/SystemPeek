@@ -1,0 +1,18 @@
+# Xcode / build artifacts
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# macOS
+.DS_Store
+
+# Tooling notes — keep out of the repo
+CLAUDE.md
+
+# XcodeGen generated project is committed (so the repo builds standalone),
+# but per-user state inside it is not.
+SystemPeek.xcodeproj/xcuserdata/
+SystemPeek.xcodeproj/project.xcworkspace/xcuserdata/
