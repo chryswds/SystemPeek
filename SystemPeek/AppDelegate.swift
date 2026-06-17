@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "speedometer", accessibilityDescription: "SystemPeek")
+            button.image = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "SystemPeek")
             button.image?.isTemplate = true
             button.toolTip = "SystemPeek"
         }

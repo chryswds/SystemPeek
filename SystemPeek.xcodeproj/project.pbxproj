@@ -12,6 +12,7 @@
 		0D0B1EF69E1C054F016645A3 /* SwapUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522BD500C42D48FBCD5B45BC /* SwapUsage.swift */; };
 		15331092A8CF8D70B0F0D3BB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A95DCE1F6073AC7A612849 /* AppDelegate.swift */; };
 		16D9007FC81C14EDB057C830 /* ProcessUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810CFB358E44A39C2B2944EF /* ProcessUsageTests.swift */; };
+		390664B434AE1F1D6436715B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2094B3837A940C2C5818C110 /* Assets.xcassets */; };
 		395F9B5684155B3BFB6FCC91 /* MetricsSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F57A1DD16853CE63CDFE0F0C /* MetricsSamplerTests.swift */; };
 		48E3F157DE944F9E2D51C57B /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07BF2A487F5B73A5002B31C5 /* MemoryUsage.swift */; };
 		6AB6B7E1FF7CB10993574DB9 /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405771037AE4593B034920F8 /* CPUUsageTests.swift */; };
@@ -54,6 +55,7 @@
 		0BA3F90618687CD25C82CC70 /* SystemMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetrics.swift; sourceTree = "<group>"; };
 		1C4999BD6BCAF6FC7AFA04B8 /* DiskUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskUsage.swift; sourceTree = "<group>"; };
 		203332E09DB8CBE147EF2ADA /* CPUUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsage.swift; sourceTree = "<group>"; };
+		2094B3837A940C2C5818C110 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		405771037AE4593B034920F8 /* CPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsageTests.swift; sourceTree = "<group>"; };
 		4EDFC797BA1F8F155BAB4D0D /* MetricsSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsSampler.swift; sourceTree = "<group>"; };
 		51B07B1E4D91C65E8FC4133F /* DiskUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskUsageTests.swift; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				02A95DCE1F6073AC7A612849 /* AppDelegate.swift */,
+				2094B3837A940C2C5818C110 /* Assets.xcassets */,
 				9A89D24F1834FE566F1694DB /* Info.plist */,
 				F04F88619AB48A894CCDD684 /* NotchPanel.swift */,
 				9F4184F5BBF9EFAB60670AE2 /* SystemPeek.entitlements */,
@@ -183,6 +186,7 @@
 			buildConfigurationList = AC5F4EFB17AA6AA63E32CB9C /* Build configuration list for PBXNativeTarget "SystemPeek" */;
 			buildPhases = (
 				C2B9183BDB0A9CB2DBA0FF91 /* Sources */,
+				A52BCFEC703608A31F29ABA6 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -257,6 +261,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A52BCFEC703608A31F29ABA6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				390664B434AE1F1D6436715B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		7C9A5D7F9C634771CF376B3A /* Sources */ = {

@@ -23,8 +23,34 @@ struct SettingsView: View {
     @AppStorage(MetricKey.topCPU) private var showTopCPU = true
     @AppStorage(MetricKey.topMemory) private var showTopMemory = true
 
+    private var versionText: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = info?["CFBundleVersion"] as? String ?? "1"
+        return "Version \(short) (\(build))"
+    }
+
     var body: some View {
         Form {
+            Section {
+                HStack(spacing: 12) {
+                    if let icon = NSImage(named: "AppIcon") {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 44, height: 44)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("SystemPeek")
+                            .font(.headline)
+                        Text(versionText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+            }
+
             Section("Metrics shown on the island") {
                 Toggle("CPU", isOn: $showCPU)
                 Toggle("Memory", isOn: $showMemory)
