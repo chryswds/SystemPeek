@@ -1,4 +1,7 @@
-# SystemPeek
+<h1>
+  <img src="docs/icon.png" alt="SystemPeek icon" width="40" valign="middle">
+  SystemPeek
+</h1>
 
 A macOS notch widget that surfaces live system telemetry. It stays **completely
 hidden** until you **hover the notch** — then the notch **morphs open** into an
