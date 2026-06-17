@@ -96,12 +96,14 @@ struct ExpandedView: View {
                     if showMemory {
                         StatCell(icon: "memorychip", label: "Memory",
                                  value: percentString(m.memoryPercent), percent: m.memoryPercent,
-                                 identifier: "memory")
+                                 identifier: "memory",
+                                 hoverDetail: "\(ByteFormat.string(m.memoryUsedBytes)) / \(ByteFormat.string(m.memoryTotalBytes))")
                     }
                     if showDisk {
                         StatCell(icon: "internaldrive", label: "Disk",
                                  value: percentString(m.diskPercent), percent: m.diskPercent,
-                                 identifier: "disk")
+                                 identifier: "disk",
+                                 hoverDetail: "\(ByteFormat.string(m.diskUsedBytes)) / \(ByteFormat.string(m.diskTotalBytes))")
                     }
                 }
             }
@@ -218,7 +220,10 @@ private struct StatCell: View {
     let percent: Double
     let identifier: String
     var tint: Color? = nil
+    /// Shown in place of `value` while the cursor hovers this cell (e.g. GB used/total).
+    var hoverDetail: String? = nil
 
+    @State private var hovering = false
     private var color: Color { tint ?? .usage(percent) }
 
     var body: some View {
@@ -236,10 +241,13 @@ private struct StatCell: View {
                     .foregroundStyle(.white.opacity(0.7))
                     .accessibilityIdentifier("\(identifier).value")
             }
-            UsageBar(percent: percent, tint: color)
+            // While hovering, the actual amount is shown inside the (taller) bar.
+            UsageBar(percent: percent, tint: color, overlay: hovering ? hoverDetail : nil)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(.white)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("\(identifier).row")
     }
@@ -278,6 +286,8 @@ private struct NetworkRow: View {
 private struct UsageBar: View {
     let percent: Double
     var tint: Color
+    /// Optional text drawn inside the bar (e.g. the actual amount, shown on hover).
+    var overlay: String? = nil
 
     var body: some View {
         GeometryReader { geo in
@@ -286,9 +296,24 @@ private struct UsageBar: View {
                 Capsule()
                     .fill(tint)
                     .frame(width: geo.size.width * CGFloat(clamped / 100))
+
+                if let overlay {
+                    // A soft dark scrim so the amount reads cleanly over any fill colour.
+                    ZStack {
+                        Capsule().fill(.black.opacity(0.40))
+                        Text(overlay)
+                            .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .padding(.horizontal, 10)
+                    }
+                    .transition(.opacity)
+                }
             }
+            .animation(.easeInOut(duration: 0.16), value: overlay)
         }
-        .frame(height: 6)
+        .frame(height: 18)
     }
 
     private var clamped: Double { min(max(percent, 0), 100) }
