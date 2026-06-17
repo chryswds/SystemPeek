@@ -144,22 +144,29 @@ final class NotchPanel: NSPanel {
         max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY)
     }
 
-    /// The trigger region: the notch itself plus a few pixels below, so moving the
-    /// cursor up to the notch reveals the panel.
+    /// A few pixels of headroom above the screen's top edge. NSRect.contains treats
+    /// the top edge as exclusive, so without this the very top menu-bar row (the
+    /// highest the cursor can reach) wouldn't count as "inside" the zone.
+    private let topOverscan: CGFloat = 8
+
+    /// The trigger region: the notch (plus a small side margin and below) so that
+    /// moving the cursor up to the notch — including sliding along the very top of
+    /// the screen across it — reveals the panel.
     private func notchHoverZone(on screen: NSScreen) -> NSRect {
         let notch = NotchPanel.notchRect(on: screen)
         let inset = topInset(on: screen)
-        let width = max(notch.width, 120)
+        let width = max(notch.width, 120) + 40   // ~20pt margin each side of the notch
+        let bottom = screen.frame.maxY - inset - 8
         return NSRect(
             x: notch.midX - width / 2,
-            y: screen.frame.maxY - inset - 6,
+            y: bottom,
             width: width,
-            height: inset + 6
+            height: screen.frame.maxY + topOverscan - bottom
         )
     }
 
     /// The keep-open region while revealed: a full-panel-width column from the
-    /// bottom of the panel all the way up to the top of the screen. This spans the
+    /// bottom of the panel all the way up past the top of the screen. This spans the
     /// panel, the gap, the notch, and the menu-bar area beside it, so the cursor
     /// can move freely between the notch and the metrics without it collapsing.
     private func keepOpenZone(on screen: NSScreen) -> NSRect {
@@ -170,7 +177,7 @@ final class NotchPanel: NSPanel {
             x: notch.midX - width / 2,
             y: panel.minY,
             width: width,
-            height: screen.frame.maxY - panel.minY
+            height: screen.frame.maxY + topOverscan - panel.minY
         )
     }
 
