@@ -7,6 +7,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchPanel: NotchPanel?
     private let sampler = MetricsSampler()
+    private let nowPlaying = NowPlayingMonitor()
     private var settingsWindow: NSWindow?
     private var statusItem: NSStatusItem?
 
@@ -19,10 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard NSClassFromString("XCTestCase") == nil else { return }
 
         sampler.start()
+        nowPlaying.start()
         setupStatusItem()
 
         // The panel manages its own visibility: hidden until the notch is hovered.
-        let panel = NotchPanel(sampler: sampler, onOpenSettings: { [weak self] in
+        let panel = NotchPanel(sampler: sampler, monitor: nowPlaying, onOpenSettings: { [weak self] in
             self?.showSettings()
         })
         notchPanel = panel

@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>SystemPeek reads now-playing info from Apple Music and Spotify to show album art and a music indicator on the notch.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>SystemPeek — local system telemetry widget. Does not access camera or microphone.</string>
 </dict>

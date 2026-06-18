@@ -1,63 +1,59 @@
 import AppKit
 import SwiftUI
+import Combine
 
-/// A borderless, non-activating panel that is **hidden by default** and drops down
-/// from under the notch when the cursor hovers the notch region.
-///
-/// Hover is detected by polling the cursor position (`NSEvent.mouseLocation`) on a
-/// timer — it reads only where the cursor is (never clicks or keystrokes), needs no
-/// permissions, and works while the panel is hidden.
+/// A borderless, non-activating panel pinned under the notch. Hidden by default;
+/// hovering the notch reveals the metrics. While music is playing it instead shows
+/// an extended "music strip" (artwork + pulse) and the hover zone becomes that
+/// wider strip. Hover is detected by polling the cursor position.
 final class NotchPanel: NSPanel {
 
     private let sampler: MetricsSampler
+    private let monitor: NowPlayingMonitor
     private let state = PanelState()
     private let panelTopInset: CGFloat
     private let onOpenSettings: (() -> Void)?
-    private var expandedSize = NSSize(width: 300, height: 150)
+    private let notchSize: CGSize
+    private let musicStripSize: CGSize
+    private var expandedSize = NSSize(width: 480, height: 150)
     private var hoverTimer: Timer?
     private var isExpanded = false
+    private var cancellables = Set<AnyCancellable>()
 
-    init(sampler: MetricsSampler, onOpenSettings: (() -> Void)? = nil) {
+    init(sampler: MetricsSampler, monitor: NowPlayingMonitor, onOpenSettings: (() -> Void)? = nil) {
         self.sampler = sampler
+        self.monitor = monitor
         self.onOpenSettings = onOpenSettings
-        self.panelTopInset = NotchPanel.notchScreen()
+        let inset = NotchPanel.notchScreen()
             .map { max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY) } ?? 32
+        self.panelTopInset = inset
+        let notchW = NotchPanel.notchScreen().map { max(NotchPanel.notchRect(on: $0).width, 120) } ?? 180
+        self.notchSize = CGSize(width: notchW, height: inset)
+        self.musicStripSize = CGSize(width: notchW + MusicStripView.sideExtension * 2, height: inset)
+
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 150),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 150),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
 
-        // Float above the menu bar, never steal focus, stay put across Spaces.
         isFloatingPanel = true
         level = .statusBar
         isOpaque = false
         backgroundColor = .clear
-        // No window shadow: it haloed the top edge gray. The island reads as a
-        // solid black extension of the notch instead.
         hasShadow = false
         isMovable = false
         isMovableByWindowBackground = false
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        // Measure the content (respecting current settings) so frames are exact.
-        expandedSize = NotchPanel.measureIsland(sampler: sampler, topInset: panelTopInset)
+        expandedSize = NotchPanel.measureIsland(sampler: sampler, topInset: inset)
         state.islandSize = expandedSize
+        state.collapsedSize = notchSize
 
-        // The notch's footprint, used as the morph's start size.
-        let notchSize: CGSize = NotchPanel.notchScreen().map {
-            CGSize(width: max(NotchPanel.notchRect(on: $0).width, 120),
-                   height: max($0.safeAreaInsets.top, $0.frame.maxY - $0.visibleFrame.maxY))
-        } ?? CGSize(width: 180, height: 32)
-
-        // The window stays at the island size; the morph happens entirely in SwiftUI
-        // (the shape grows from the notch size, metrics fade in) so the window frame
-        // never animates — no sliding/glitching. The island size lives in `state` so
-        // it can update when settings change which metrics are shown.
         let hosting = NSHostingView(rootView: NotchContentView(
-            sampler: sampler, state: state, topInset: panelTopInset, notchSize: notchSize
+            sampler: sampler, state: state, monitor: monitor, topInset: inset, notchSize: notchSize
         ))
         hosting.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
@@ -69,7 +65,6 @@ final class NotchPanel: NSPanel {
             hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
-        // Right-click menu: Settings and Quit.
         let menu = NSMenu()
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
@@ -80,15 +75,23 @@ final class NotchPanel: NSPanel {
         hosting.menu = menu
         contentView = container
 
-        // Island-sized window, anchored to the top; starts hidden.
-        setFrame(expandedFrame(), display: false)
+        setFrame(expandedFrame(), display: false)   // hidden until hover / music
         startHoverTracking()
 
-        // Re-measure and resize when settings change which metrics are shown.
         NotificationCenter.default.addObserver(
             self, selector: #selector(settingsChanged),
             name: UserDefaults.didChangeNotification, object: nil
         )
+
+        // Enter/exit music mode as playback starts/stops.
+        monitor.$info
+            .map { $0 != nil }
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] playing in
+                if playing { self?.enterMusicMode() } else { self?.exitMusicMode() }
+            }
+            .store(in: &cancellables)
     }
 
     @objc private func openSettings() { onOpenSettings?() }
@@ -101,7 +104,6 @@ final class NotchPanel: NSPanel {
         if isExpanded { setFrame(expandedFrame(), display: true) }
     }
 
-    /// Measures the island's fitting size for the metrics currently enabled.
     private static func measureIsland(sampler: MetricsSampler, topInset: CGFloat) -> NSSize {
         let host = NSHostingView(rootView: ExpandedView(sampler: sampler, topInset: topInset))
         host.layoutSubtreeIfNeeded()
@@ -109,13 +111,30 @@ final class NotchPanel: NSPanel {
         return (size.width > 1 && size.height > 1) ? size : NSSize(width: 480, height: 150)
     }
 
-    // Display-only panel: never becomes key or main.
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    /// Re-anchor while revealed (e.g. after a display change).
     func reposition() {
         if isExpanded { setFrame(expandedFrame(), display: true) }
+        else if state.musicMode { setFrame(collapsedWindowFrame(), display: true) }
+    }
+
+    // MARK: - Music mode
+
+    private func enterMusicMode() {
+        state.musicMode = true
+        state.collapsedSize = musicStripSize
+        if !isExpanded {
+            alphaValue = 1
+            setFrame(collapsedWindowFrame(), display: true)
+            orderFrontRegardless()
+        }
+    }
+
+    private func exitMusicMode() {
+        state.musicMode = false
+        state.collapsedSize = notchSize
+        if !isExpanded { orderOut(nil) }
     }
 
     // MARK: - Hover (cursor-position polling)
@@ -128,18 +147,12 @@ final class NotchPanel: NSPanel {
         hoverTimer = timer
     }
 
-    /// Reveal while the cursor is over the notch region (or the revealed panel),
-    /// hide otherwise. The revealed panel keeps it open so the cursor can move
-    /// from the notch down into the metrics.
     private func updateHover() {
         guard let screen = NotchPanel.notchScreen() else { return }
         let mouse = NSEvent.mouseLocation
         if isExpanded {
-            // Stay open anywhere from the panel up to the very top of the screen,
-            // across the panel's full width — so moving up to/under the notch (even
-            // off-centre) keeps it revealed.
             if !keepOpenZone(on: screen).contains(mouse) { collapse() }
-        } else if notchHoverZone(on: screen).contains(mouse) {
+        } else if triggerZone(on: screen).contains(mouse) {
             expand()
         }
     }
@@ -147,8 +160,6 @@ final class NotchPanel: NSPanel {
     private func expand() {
         guard !isExpanded else { return }
         isExpanded = true
-        // Window is already island-sized and anchored at the notch; just show it
-        // and let SwiftUI morph the shape out from the notch.
         alphaValue = 1
         setFrame(expandedFrame(), display: false)
         orderFrontRegardless()
@@ -158,92 +169,81 @@ final class NotchPanel: NSPanel {
     private func collapse() {
         guard isExpanded else { return }
         isExpanded = false
-        state.isExpanded = false   // SwiftUI morphs the shape back into the notch
-        // Fade the window out as it retracts so the shape's final edge never sits
-        // as a visible line/bump under the notch before hiding.
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            guard let self, !self.isExpanded else { return }
-            self.orderOut(nil)
-            self.alphaValue = 1   // reset for the next reveal
-        })
+        state.isExpanded = false
+        if state.musicMode {
+            // Morph back to the strip, then shrink the window to the strip height.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self, !self.isExpanded, self.state.musicMode else { return }
+                self.setFrame(self.collapsedWindowFrame(), display: true)
+            }
+        } else {
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.22
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                animator().alphaValue = 0
+            }, completionHandler: { [weak self] in
+                guard let self, !self.isExpanded else { return }
+                self.orderOut(nil)
+                self.alphaValue = 1
+            })
+        }
     }
 
-    // MARK: - Frames
+    // MARK: - Frames & zones
 
     private func topInset(on screen: NSScreen) -> CGFloat {
         max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY)
     }
 
-    /// A few pixels of headroom above the screen's top edge. NSRect.contains treats
-    /// the top edge as exclusive, so without this the very top menu-bar row (the
-    /// highest the cursor can reach) wouldn't count as "inside" the zone.
     private let topOverscan: CGFloat = 8
 
-    /// The trigger region: the notch (plus a small side margin and below) so that
-    /// moving the cursor up to the notch — including sliding along the very top of
-    /// the screen across it — reveals the panel.
-    private func notchHoverZone(on screen: NSScreen) -> NSRect {
+    /// The hover trigger: the notch (plus a small margin) normally, or the wider
+    /// music strip while music is playing.
+    private func triggerZone(on screen: NSScreen) -> NSRect {
         let notch = NotchPanel.notchRect(on: screen)
         let inset = topInset(on: screen)
-        let width = max(notch.width, 120) + 40   // ~20pt margin each side of the notch
+        let width = state.musicMode ? musicStripSize.width : max(notch.width, 120) + 40
         let bottom = screen.frame.maxY - inset - 8
-        return NSRect(
-            x: notch.midX - width / 2,
-            y: bottom,
-            width: width,
-            height: screen.frame.maxY + topOverscan - bottom
-        )
+        return NSRect(x: notch.midX - width / 2, y: bottom,
+                      width: width, height: screen.frame.maxY + topOverscan - bottom)
     }
 
-    /// The keep-open region while revealed: a full-panel-width column from the
-    /// bottom of the panel all the way up past the top of the screen. This spans the
-    /// panel, the gap, the notch, and the menu-bar area beside it, so the cursor
-    /// can move freely between the notch and the metrics without it collapsing.
     private func keepOpenZone(on screen: NSScreen) -> NSRect {
         let notch = NotchPanel.notchRect(on: screen)
         let panel = expandedFrame()
         let width = max(panel.width, notch.width)
-        return NSRect(
-            x: notch.midX - width / 2,
-            y: panel.minY,
-            width: width,
-            height: screen.frame.maxY + topOverscan - panel.minY
-        )
+        return NSRect(x: notch.midX - width / 2, y: panel.minY,
+                      width: width, height: screen.frame.maxY + topOverscan - panel.minY)
     }
 
-    /// Revealed frame: anchored to the very top of the screen so the notch column
-    /// overlays the menu bar and merges with the real notch.
+    /// Revealed (metrics) frame, anchored to the top of the screen.
     private func expandedFrame() -> NSRect {
         guard let screen = NotchPanel.notchScreen() else { return frame }
         let notch = NotchPanel.notchRect(on: screen)
-        return NSRect(
-            x: notch.midX - expandedSize.width / 2,
-            y: screen.frame.maxY - expandedSize.height,
-            width: expandedSize.width,
-            height: expandedSize.height
-        )
+        return NSRect(x: notch.midX - expandedSize.width / 2,
+                      y: screen.frame.maxY - expandedSize.height,
+                      width: expandedSize.width, height: expandedSize.height)
     }
 
-    deinit {
-        hoverTimer?.invalidate()
+    /// Collapsed window frame for music mode: full width (so it can grow in place)
+    /// but only the strip's height, so it doesn't block clicks below.
+    private func collapsedWindowFrame() -> NSRect {
+        guard let screen = NotchPanel.notchScreen() else { return frame }
+        let notch = NotchPanel.notchRect(on: screen)
+        let h = state.collapsedSize.height
+        return NSRect(x: notch.midX - expandedSize.width / 2,
+                      y: screen.frame.maxY - h,
+                      width: expandedSize.width, height: h)
     }
+
+    deinit { hoverTimer?.invalidate() }
 
     // MARK: - Notch geometry
 
-    /// The screen that has a notch, falling back to the main screen.
     static func notchScreen() -> NSScreen? {
         NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
     }
 
-    /// Rect (in global screen coordinates) covering the notch.
-    ///
-    /// `auxiliaryTopLeftArea` / `auxiliaryTopRightArea` are the menu-bar regions
-    /// either side of the camera housing; the notch sits between them. When there
-    /// is no notch, returns a zero-height rect centered at the top of the screen.
     static func notchRect(on screen: NSScreen) -> NSRect {
         let topInset = screen.safeAreaInsets.top
         if topInset > 0,
@@ -251,60 +251,64 @@ final class NotchPanel: NSPanel {
            let right = screen.auxiliaryTopRightArea {
             let minX = left.maxX
             let maxX = right.minX
-            return NSRect(
-                x: minX,
-                y: screen.frame.maxY - topInset,
-                width: max(maxX - minX, 0),
-                height: topInset
-            )
+            return NSRect(x: minX, y: screen.frame.maxY - topInset,
+                          width: max(maxX - minX, 0), height: topInset)
         }
-        return NSRect(
-            x: screen.frame.midX - minimumWidthFallback / 2,
-            y: screen.frame.maxY,
-            width: minimumWidthFallback,
-            height: 0
-        )
+        return NSRect(x: screen.frame.midX - minimumWidthFallback / 2,
+                      y: screen.frame.maxY, width: minimumWidthFallback, height: 0)
     }
 
     private static let minimumWidthFallback: CGFloat = 180
 }
 
-/// Shared reveal state so the SwiftUI metrics can fade in/out in step with the
-/// window's morph animation.
+/// Shared reveal/music state driving the SwiftUI content.
 @MainActor
 final class PanelState: ObservableObject {
     @Published var isExpanded = false
     @Published var islandSize: CGSize = CGSize(width: 480, height: 150)
+    @Published var collapsedSize: CGSize = CGSize(width: 180, height: 32)
+    @Published var musicMode = false
 }
 
-/// The panel's content, in a fixed island-sized container. The black NotchShape
-/// animates its size from the notch footprint up to the island while the metrics
-/// fade in — the whole morph happens in SwiftUI, so the window never resizes.
+/// The panel content: a black NotchShape that morphs between the collapsed size
+/// (notch footprint, or the wider music strip) and the island, with the music
+/// strip or the metrics shown on top.
 private struct NotchContentView: View {
     @ObservedObject var sampler: MetricsSampler
     @ObservedObject var state: PanelState
+    @ObservedObject var monitor: NowPlayingMonitor
     var topInset: CGFloat
     var notchSize: CGSize
 
     var body: some View {
         let island = state.islandSize
-        let w = state.isExpanded ? island.width : notchSize.width
-        let h = state.isExpanded ? island.height : notchSize.height
+        let collapsed = state.collapsedSize
+        let w = state.isExpanded ? island.width : collapsed.width
+        let h = state.isExpanded ? island.height : collapsed.height
+        // The thin music strip reads better with squarer bottom corners.
+        let stripRadius: CGFloat = 10
+        let bottomRadius: CGFloat = state.isExpanded ? 28 : (state.musicMode ? stripRadius : 28)
         ZStack(alignment: .top) {
-            NotchShape()
+            NotchShape(bottomCornerRadius: bottomRadius)
                 .fill(Color.black)
                 .frame(width: w, height: h)
                 .animation(.spring(response: 0.34, dampingFraction: 0.86), value: state.isExpanded)
+                .animation(.spring(response: 0.34, dampingFraction: 0.9), value: state.collapsedSize)
 
-            // Metrics are clipped to the (morphing) notch outline so they can never
-            // show outside it, and they hide fast — so when the notch retracts the
-            // items are gone immediately, not lingering for a split second.
+            if state.musicMode {
+                // Stays visible as a header even when the metrics are expanded
+                // (the metrics view's top padding is transparent, so it shows through).
+                MusicStripView(monitor: monitor, notchWidth: notchSize.width, height: collapsed.height)
+                    .frame(width: collapsed.width, height: collapsed.height, alignment: .top)
+                    .clipShape(NotchShape(bottomCornerRadius: stripRadius))
+            }
+
             ExpandedView(sampler: sampler, topInset: topInset)
                 .frame(width: w, height: h, alignment: .top)
-                .clipShape(NotchShape())
+                .clipShape(NotchShape(bottomCornerRadius: bottomRadius))
                 .opacity(state.isExpanded ? 1 : 0)
                 .animation(.easeOut(duration: 0.08), value: state.isExpanded)
         }
-        .frame(width: island.width, height: island.height, alignment: .top)
+        .frame(width: max(island.width, collapsed.width), height: island.height, alignment: .top)
     }
 }

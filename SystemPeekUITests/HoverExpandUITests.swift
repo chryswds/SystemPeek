@@ -27,26 +27,34 @@ final class HoverExpandUITests: XCTestCase {
 
     func testNotchHoverRevealsThenHides() throws {
         try launchSystemPeek()
-        Thread.sleep(forTimeInterval: 1.5)
+        Thread.sleep(forTimeInterval: 1.0)
 
-        // Nothing is shown until the notch is hovered.
-        XCTAssertNil(systemPeekWindow(), "Panel should be hidden until the notch is hovered")
+        // Make sure the cursor isn't already in the (possibly wider, music-mode)
+        // hover zone, then confirm the metrics panel settles to not-expanded.
+        CGWarpMouseCursorPosition(awayPoint())
+        XCTAssertTrue(waitForExpanded(false, timeout: 5), "Metrics panel should be hidden until the notch is hovered")
 
         let hover = try XCTUnwrap(notchHoverPoint(), "No notch display found")
 
         // Hover the notch -> the panel drops down.
         CGWarpMouseCursorPosition(hover)
-        XCTAssertTrue(
-            waitForWindow(where: { $0.height > revealedMin }, timeout: 6),
-            "Hovering the notch should reveal the panel"
-        )
+        XCTAssertTrue(waitForExpanded(true, timeout: 6), "Hovering the notch should reveal the panel")
 
-        // Move the cursor away -> the panel hides again.
+        // Move the cursor away -> the panel retracts (back to hidden or the strip).
         CGWarpMouseCursorPosition(awayPoint())
-        XCTAssertTrue(
-            waitForNoWindow(timeout: 6),
-            "Panel should hide when the cursor leaves the notch"
-        )
+        XCTAssertTrue(waitForExpanded(false, timeout: 6), "Panel should hide when the cursor leaves the notch")
+    }
+
+    /// Whether the expanded metrics panel (taller than `revealedMin`) is on screen.
+    private func expandedVisible() -> Bool { (systemPeekWindow()?.rect.height ?? 0) > revealedMin }
+
+    private func waitForExpanded(_ expanded: Bool, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if expandedVisible() == expanded { return true }
+            usleep(100_000)
+        }
+        return expandedVisible() == expanded
     }
 
     // MARK: - Launching / terminating the real app
